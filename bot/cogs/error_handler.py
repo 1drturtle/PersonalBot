@@ -70,8 +70,8 @@ class CommandErrorHandler(commands.Cog):
         elif isinstance(error, commands.CommandOnCooldown):
             remaining = pendulum.duration(seconds=error.retry_after)
             await ctx.send(
-                embed=ErrorEmbed(ctx, title='Command on Cooldown!', description=f'`{cmd_name}` cannot be used for'
-                                                                                f'the next {remaining.in_words()}.')
+                embed=ErrorEmbed(ctx, title='Command on Cooldown!', description=f'`{cmd_name}` is on cooldown for'
+                                                                                f' {remaining.in_words()}.')
             )
 
         elif isinstance(error, commands.MissingRequiredArgument):
