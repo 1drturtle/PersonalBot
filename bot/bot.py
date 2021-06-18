@@ -97,7 +97,7 @@ async def on_ready():
     )
 
 
-COGS = {'jishaku', 'cogs.info', 'cogs.moderation', 'cogs.tracker'}
+COGS = {'jishaku', 'cogs.error_handler', 'cogs.info', 'cogs.moderation', 'cogs.tracker'}
 
 for cog in COGS:
     try:
