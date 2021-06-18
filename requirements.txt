@@ -1,0 +1,16 @@
+# Core (Discord)
+discord.py
+# Menus
+git+https://github.com/Rapptz/discord-ext-menus
+
+# Database
+motor
+aioredis
+dnspython
+
+# Error Handling/Debugging
+sentry-sdk
+psutil
+jishaku
+
+pendulum # time

@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+  bot:
+    image: pbot
+    restart: unless-stopped
+    container_name: pbot
+    build:
+      context: .
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    environment:
+      ENVIRONMENT: testing
+      JISHAKU_NO_UNDERSCORE: "true"
+
+  redis:
+    image: redis
+    hostname: redis
+    restart: unless-stopped
+    container_name: redis
+    volumes:
+    - $PROJ_DIR/docker/redis_data:/data
+    entrypoint: redis-server --appendonly yes
