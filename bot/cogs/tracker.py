@@ -25,8 +25,8 @@ class Tracker(commands.Cog):
         self.bot = bot
         self.redis = self.bot.redis_db
 
-    async def cog_check(self, ctx):
-        return getattr(ctx.guild, 'id', 0) in self.bot.whitelist
+    # async def cog_check(self, ctx):
+    #     return getattr(ctx.guild, 'id', 0) in self.bot.whitelist
 
     @commands.command(name='optin')
     async def opt_in(self, ctx):
@@ -79,6 +79,7 @@ class Tracker(commands.Cog):
 
     @commands.command(name='stats')
     @commands.cooldown(3, 15, commands.BucketType.user)
+    @commands.guild_only()
     async def tracked_stats(self, ctx):
         if not await self.redis.sismember('opted', str(ctx.author.id)):
             return await ctx.send(embed=ErrorEmbed(ctx, title='Stats Error!', description='You must sign up for'
@@ -108,8 +109,14 @@ class Tracker(commands.Cog):
         last_24 = OrderedDict(sorted(last_24.items(), key=itemgetter(1), reverse=True))
 
         embed = DefaultEmbed(ctx, title='Hunt Together Stats')
-        embed.add_field(name='Total (all-time)', value='\n'.join([f'**{x.title()}:** {y}' for x, y in total.items()]))
-        embed.add_field(name='Total (last 24h)', value='\n'.join([f'**{x.title()}:** {y}' for x, y in last_24.items()]))
+        embed.add_field(
+            name='Total (all-time)',
+            value='\n'.join([f'**{x.title()}:** {y}' for x, y in total.items()]) or 'No hunts found.'
+        )
+        embed.add_field(
+            name='Total (last 24h)',
+            value='\n'.join([f'**{x.title()}:** {y}' for x, y in last_24.items()]) or 'No hunts found.'
+        )
 
         return await ctx.send(embed=embed)
 
