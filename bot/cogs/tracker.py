@@ -22,10 +22,10 @@ TRACKED_COMMANDS = {
     'ascended hunt h t': 3,
     'ascended hunt t h': 3,
     'hunt': 10,
-    'hunt hardmode': 20,
-    'hunt h': 20,
-    'ascended hunt hardmode': 30,
-    'ascended hunt h': 30
+    'hunt hardmode': 11,
+    'hunt h': 12,
+    'ascended hunt hardmode': 13,
+    'ascended hunt h': 14
 }
 
 
@@ -33,6 +33,7 @@ class Tracker(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.redis = self.bot.redis_db
+        self.env = self.bot.config.ENVIRONMENT
 
     # async def cog_check(self, ctx):
     #     return getattr(ctx.guild, 'id', 0) in self.bot.whitelist
@@ -41,11 +42,11 @@ class Tracker(commands.Cog):
     async def opt_in(self, ctx):
         """Opts-in to the RPG tracker system."""
         str_id = str(ctx.author.id)
-        if await self.redis.sismember('opted', str_id):
+        if await self.redis.sismember(f'opted-{self.env}', str_id):
             embed = ErrorEmbed(ctx, title='Opt-in Error', description='You have already opted-in to the program.')
             return await ctx.send(embed=embed)
 
-        await self.redis.sadd('opted', str_id)
+        await self.redis.sadd(f'opted-{self.env}', str_id)
         embed = SuccessEmbed(ctx, title='Opted-in!', description='You have been opted-in to the RPG hunt tracker.')
         return await ctx.send(embed=embed)
 
@@ -55,8 +56,8 @@ class Tracker(commands.Cog):
         if not msg.guild:
             return
 
-        str_id = f'redis-tracked:{str(msg.author.id)}'
-        if not await self.redis.sismember('opted', str(msg.author.id)):
+        str_id = f'redis-tracked-{self.env}:{str(msg.author.id)}'
+        if not await self.redis.sismember(f'opted-{self.env}', str(msg.author.id)):
             return None
 
         if not msg.content.startswith('rpg'):
@@ -92,7 +93,7 @@ class Tracker(commands.Cog):
                                                                                           'tracking to display'
                                                                                           'stats.'))
 
-        content = await self.redis.hgetall(f'redis-tracked:{str(ctx.author.id)}', encoding='utf-8')
+        content = await self.redis.hgetall(f'redis-tracked-{self.env}:{str(ctx.author.id)}', encoding='utf-8')
         out = {k: json.loads(v) for k, v in content.items()}
 
         total, last_24 = {}, {}
@@ -124,14 +125,24 @@ class Tracker(commands.Cog):
         last_24 = OrderedDict(sorted(last_24.items(), key=itemgetter(1), reverse=True))
 
         embed = DefaultEmbed(ctx, title='Hunt Together Stats')
-        embed.add_field(
-            name='Total (together, all-time)',
-            value='\n'.join([f'**{x.title()}:** {y}' for x, y in total.items()]) or 'No hunts found.'
-        )
-        embed.add_field(
-            name='Total (together, last 24h)',
-            value='\n'.join([f'**{x.title()}:** {y}' for x, y in last_24.items()]) or 'No hunts found.'
-        )
+        if total:
+            embed.add_field(
+                name='Total (together, all-time)',
+                value='\n'.join([f'**{x.title()}:** {y}' for x, y in total.items()]) or 'No hunts found.'
+            )
+            embed.add_field(
+                name='Total (together, last 24h)',
+                value='\n'.join([f'**{x.title()}:** {y}' for x, y in last_24.items()]) or 'No hunts found.'
+            )
+        if total_i:
+            embed.add_field(
+                name='Total (individual, all-time)',
+                value='\n'.join([f'**{x.title()}:** {y}' for x, y in total_i.items()]) or 'No hunts found.'
+            )
+            embed.add_field(
+                name='Total (individual, last 24h)',
+                value='\n'.join([f'**{x.title()}:** {y}' for x, y in last_24_i.items()]) or 'No hunts found.'
+            )
 
         return await ctx.send(embed=embed)
 
