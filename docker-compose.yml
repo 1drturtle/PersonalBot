@@ -2,7 +2,7 @@ version: '3'
 
 services:
   bot:
-    image: pbot
+    image: turtlebot
     restart: unless-stopped
     container_name: pbot
     build:
@@ -19,7 +19,7 @@ services:
     image: redis
     hostname: redis
     restart: unless-stopped
-    container_name: redis
+    container_name: turlebot-redis
     volumes:
     - $PROJ_DIR/docker/redis_data:/data
     entrypoint: redis-server --appendonly yes
