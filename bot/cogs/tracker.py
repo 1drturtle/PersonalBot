@@ -56,7 +56,7 @@ class Tracker(commands.Cog):
         if not msg.guild:
             return
 
-        if not (msg.guild.id in self.bot.whitelist):
+        if not (msg.channel.id in self.bot.whitelist):
             return
 
         str_id = f'redis-tracked-{self.env}:{str(msg.author.id)}'
@@ -163,22 +163,22 @@ class Tracker(commands.Cog):
 
     @commands.command(name='whitelist', hidden=True)
     @commands.is_owner()
-    async def whitelist(self, ctx, guild_id: int):
+    async def whitelist(self, ctx, channel_id: int):
         """whitelist a server to track hunts"""
 
-        guild = self.bot.get_guild(guild_id)
-        if not guild:
-            return await ctx.send('could not find guild with id '+guild_id)
+        channel = self.bot.get_channel(channel_id)
+        if not channel:
+            return await ctx.send('could not find channel with id ' + channel_id)
 
         await self.bot.mdb['whitelist'].update_one(
-            {'_id': guild_id},
-            {'$set': {'_id': guild_id}},
+            {'_id': channel_id},
+            {'$set': {'_id': channel_id}},
             upsert=True
         )
 
-        self.bot.whitelist.add(guild_id)
+        self.bot.whitelist.add(channel_id)
 
-        return await ctx.send(f'guild `{guild}` added to whitelist.')
+        return await ctx.send(f'channel `{channel}` added to whitelist.')
 
 
 def setup(bot):
