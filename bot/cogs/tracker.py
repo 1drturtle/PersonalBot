@@ -14,9 +14,18 @@ TRACKED_COMMANDS = {
     'hunt together': 1,
     'hunt t': 1,
     'hunt hardmode together': 2,
+    'hunt together hardmode': 2,
     'hunt h t': 2,
+    'hunt t h': 2,
     'ascended hunt hardmode together': 3,
-    'ascended hunt h t': 3
+    'ascended hunt together hardmode': 3,
+    'ascended hunt h t': 3,
+    'ascended hunt t h': 3,
+    'hunt': 10,
+    'hunt hardmode': 20,
+    'hunt h': 20,
+    'ascended hunt hardmode': 30,
+    'ascended hunt h': 30
 }
 
 
@@ -44,9 +53,6 @@ class Tracker(commands.Cog):
     async def tracker_listener(self, msg):
 
         if not msg.guild:
-            return
-
-        if msg.guild.id not in self.bot.whitelist:
             return
 
         str_id = f'redis-tracked:{str(msg.author.id)}'
@@ -90,6 +96,7 @@ class Tracker(commands.Cog):
         out = {k: json.loads(v) for k, v in content.items()}
 
         total, last_24 = {}, {}
+        total_i, last_24_i = {}, {}
         now = pendulum.now(tz=pendulum.tz.UTC)
 
         for timestamp, hunts in out.items():
@@ -97,24 +104,32 @@ class Tracker(commands.Cog):
             diff = time.diff(now, False).in_hours()
 
             for hunt_type, hunt_count in hunts.items():
-                x = list(TRACKED_COMMANDS.keys())[list(TRACKED_COMMANDS.values()).index(int(hunt_type))]
+                hunt_index = list(TRACKED_COMMANDS.values()).index(int(hunt_type))
+                full_hunt_type = list(TRACKED_COMMANDS.keys())[hunt_index]
 
-                total['total'] = hunt_count + total.get('total', 0)
-                total[x] = hunt_count + total.get(x, 0)
-                if diff <= 24:
-                    last_24['total'] = hunt_count + last_24.get('total', 0)
-                    last_24[x] = hunt_count + last_24.get(x, 0)
+                if int(hunt_type) < 10:
+                    total['total'] = hunt_count + total.get('total', 0)
+                    total[full_hunt_type] = hunt_count + total.get(full_hunt_type, 0)
+                    if diff <= 24:
+                        last_24['total'] = hunt_count + last_24.get('total', 0)
+                        last_24[full_hunt_type] = hunt_count + last_24.get(full_hunt_type, 0)
+                else:
+                    total_i['total'] = hunt_count + total_i.get('total', 0)
+                    total_i[full_hunt_type] = hunt_count + total_i.get(full_hunt_type, 0)
+                    if diff <= 24:
+                        last_24_i['total'] = hunt_count + last_24_i.get('total', 0)
+                        last_24_i[full_hunt_type] = hunt_count + last_24_i.get(full_hunt_type, 0)
 
         total = OrderedDict(sorted(total.items(), key=itemgetter(1), reverse=True))
         last_24 = OrderedDict(sorted(last_24.items(), key=itemgetter(1), reverse=True))
 
         embed = DefaultEmbed(ctx, title='Hunt Together Stats')
         embed.add_field(
-            name='Total (all-time)',
+            name='Total (together, all-time)',
             value='\n'.join([f'**{x.title()}:** {y}' for x, y in total.items()]) or 'No hunts found.'
         )
         embed.add_field(
-            name='Total (last 24h)',
+            name='Total (together, last 24h)',
             value='\n'.join([f'**{x.title()}:** {y}' for x, y in last_24.items()]) or 'No hunts found.'
         )
 
