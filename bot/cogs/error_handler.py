@@ -84,8 +84,7 @@ class CommandErrorHandler(commands.Cog):
             await ctx.send(
                 embed=ErrorEmbed(ctx,
                                  title='Invalid Argument',
-                                 description=f'`{cmd_name} was passed an invalid argument. '
-                                             f'Error: {error.message if error.message else "No error provided."}`')
+                                 description=f'`{cmd_name} was passed an invalid argument. ')
             )
 
         elif isinstance(error, discord.Forbidden):
