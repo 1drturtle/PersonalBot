@@ -25,6 +25,9 @@ class Tracker(commands.Cog):
         self.bot = bot
         self.redis = self.bot.redis_db
 
+    async def cog_check(self, ctx):
+        return getattr(ctx.guild, 'id', 0) in self.bot.whitelist
+
     @commands.command(name='optin')
     async def opt_in(self, ctx):
         """Opts-in to the RPG tracker system."""
@@ -39,6 +42,13 @@ class Tracker(commands.Cog):
 
     @commands.Cog.listener(name='on_message')
     async def tracker_listener(self, msg):
+
+        if not msg.guild:
+            return
+
+        if msg.guild.id not in self.bot.whitelist:
+            return
+
         str_id = f'redis-tracked:{str(msg.author.id)}'
         if not await self.redis.sismember('opted', str(msg.author.id)):
             return None

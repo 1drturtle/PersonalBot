@@ -49,11 +49,21 @@ class MyBot(commands.Bot):
         self.environment = config.ENVIRONMENT
         self.dev_id = config.DEV_ID
 
+        self.whitelist = set()
+
+        self.loop.run_until_complete(
+            self.startup()
+        )
+
         super(MyBot, self).__init__(command_prefix, description=desc, **options)
 
     @property
     def uptime(self):
         return pendulum.now(tz=pendulum.tz.UTC) - self.launch_time
+
+    async def startup(self):
+        data = await self.mdb['whitelisted'].find().to_list(length=None)
+        self.whitelist = set([d.get('_id') for d in data])
 
     async def close(self):
         self.redis_db.close()
