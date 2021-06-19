@@ -78,7 +78,7 @@ class Tracker(commands.Cog):
             await self.redis.hmset_dict(str_id, values)
 
     @commands.command(name='stats')
-    @commands.cooldown(1, 15, commands.BucketType.user)
+    @commands.cooldown(3, 15, commands.BucketType.user)
     async def tracked_stats(self, ctx):
         if not await self.redis.sismember('opted', str(ctx.author.id)):
             return await ctx.send(embed=ErrorEmbed(ctx, title='Stats Error!', description='You must sign up for'
