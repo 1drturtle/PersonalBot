@@ -96,6 +96,10 @@ class Tracker(commands.Cog):
 
         `hours` - Amount of hours to show in the Last X hours field. (min 1, max 48).
         """
+        
+        if not (ctx.channel.id in self.bot.whitelist):
+            return
+        
         if not await self.redis.sismember(f'opted-{self.env}', str(ctx.author.id)):
             return await ctx.send(embed=ErrorEmbed(ctx, title='Stats Error!', description='You must sign up for'
                                                                                           'tracking to display'
