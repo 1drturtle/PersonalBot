@@ -56,6 +56,9 @@ class Tracker(commands.Cog):
         if not msg.guild:
             return
 
+        if not (msg.guild.id in self.bot.whitelist):
+            return
+
         str_id = f'redis-tracked-{self.env}:{str(msg.author.id)}'
         if not await self.redis.sismember(f'opted-{self.env}', str(msg.author.id)):
             return None
@@ -87,7 +90,12 @@ class Tracker(commands.Cog):
     @commands.command(name='stats')
     @commands.cooldown(3, 15, commands.BucketType.user)
     @commands.guild_only()
-    async def tracked_stats(self, ctx):
+    async def tracked_stats(self, ctx, hours=24):
+        """
+        Shows your tracked hunts!
+
+        `hours` - Amount of hours to show in the Last X hours field. (min 1, max 48).
+        """
         if not await self.redis.sismember(f'opted-{self.env}', str(ctx.author.id)):
             return await ctx.send(embed=ErrorEmbed(ctx, title='Stats Error!', description='You must sign up for'
                                                                                           'tracking to display'
@@ -100,6 +108,8 @@ class Tracker(commands.Cog):
         total_i, last_24_i = {}, {}
         now = pendulum.now(tz=pendulum.tz.UTC)
 
+        hours = min(max(hours, 1), 48)
+
         for timestamp, hunts in out.items():
             time = pendulum.from_format(timestamp, 'YYYY-MM_DD_HH', tz=pendulum.tz.UTC)
             diff = time.diff(now, False).in_hours()
@@ -111,13 +121,13 @@ class Tracker(commands.Cog):
                 if int(hunt_type) < 10:
                     total['total'] = hunt_count + total.get('total', 0)
                     total[full_hunt_type] = hunt_count + total.get(full_hunt_type, 0)
-                    if diff <= 24:
+                    if diff <= hours:
                         last_24['total'] = hunt_count + last_24.get('total', 0)
                         last_24[full_hunt_type] = hunt_count + last_24.get(full_hunt_type, 0)
                 else:
                     total_i['total'] = hunt_count + total_i.get('total', 0)
                     total_i[full_hunt_type] = hunt_count + total_i.get(full_hunt_type, 0)
-                    if diff <= 24:
+                    if diff <= hours:
                         last_24_i['total'] = hunt_count + last_24_i.get('total', 0)
                         last_24_i[full_hunt_type] = hunt_count + last_24_i.get(full_hunt_type, 0)
 
@@ -128,11 +138,11 @@ class Tracker(commands.Cog):
         if total:
             embed.add_field(
                 name='Total (together, all-time)',
-                value='\n'.join([f'**{x.title()}:** {y}' for x, y in total.items()]) or 'No hunts found.'
+                value='\n'.join([f'**RPG {x.title()}:** {y}' for x, y in total.items()]) or 'No hunts found.'
             )
             embed.add_field(
-                name='Total (together, last 24h)',
-                value='\n'.join([f'**{x.title()}:** {y}' for x, y in last_24.items()]) or 'No hunts found.'
+                name=f'Total (together, last {hours}h)',
+                value='\n'.join([f'**RPG {x.title()}:** {y}' for x, y in last_24.items()]) or 'No hunts found.'
             )
 
         if total_i:
@@ -140,16 +150,35 @@ class Tracker(commands.Cog):
                 embed.add_field(name='\u200b', value='\u200b', inline=False)
             embed.add_field(
                 name='Total (individual, all-time)',
-                value='\n'.join([f'**{x.title()}:** {y}' for x, y in total_i.items()]) or 'No hunts found.'
+                value='\n'.join([f'**RPG {x.title()}:** {y}' for x, y in total_i.items()]) or 'No hunts found.'
             )
             embed.add_field(
-                name='Total (individual, last 24h)',
-                value='\n'.join([f'**{x.title()}:** {y}' for x, y in last_24_i.items()]) or 'No hunts found.'
+                name=f'Total (individual, last {hours}h)',
+                value='\n'.join([f'**RPG {x.title()}:** {y}' for x, y in last_24_i.items()]) or 'No hunts found.'
             )
 
         embed.description = 'Here are your hunts stats. If there is nothing here, try hunting and checking again!'
 
         return await ctx.send(embed=embed)
+
+    @commands.command(name='whitelist', hidden=True)
+    @commands.is_owner()
+    async def whitelist(self, ctx, guild_id: int):
+        """whitelist a server to track hunts"""
+
+        guild = self.bot.get_guild(guild_id)
+        if not guild:
+            return await ctx.send('could not find guild with id '+guild_id)
+
+        await self.bot.mdb['whitelist'].update_one(
+            {'_id': guild_id},
+            {'$set': {'_id': guild_id}},
+            upsert=True
+        )
+
+        self.bot.whitelist.add(guild_id)
+
+        return await ctx.send(f'guild `{guild}` added to whitelist.')
 
 
 def setup(bot):
