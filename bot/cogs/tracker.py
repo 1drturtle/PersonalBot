@@ -88,7 +88,7 @@ class Tracker(commands.Cog):
     @commands.cooldown(3, 15, commands.BucketType.user)
     @commands.guild_only()
     async def tracked_stats(self, ctx):
-        if not await self.redis.sismember('opted', str(ctx.author.id)):
+        if not await self.redis.sismember(f'opted-{self.env}', str(ctx.author.id)):
             return await ctx.send(embed=ErrorEmbed(ctx, title='Stats Error!', description='You must sign up for'
                                                                                           'tracking to display'
                                                                                           'stats.'))
@@ -134,7 +134,10 @@ class Tracker(commands.Cog):
                 name='Total (together, last 24h)',
                 value='\n'.join([f'**{x.title()}:** {y}' for x, y in last_24.items()]) or 'No hunts found.'
             )
+
         if total_i:
+            if total:
+                embed.add_field(name='\u200b', value='\u200b', inline=False)
             embed.add_field(
                 name='Total (individual, all-time)',
                 value='\n'.join([f'**{x.title()}:** {y}' for x, y in total_i.items()]) or 'No hunts found.'
@@ -143,6 +146,8 @@ class Tracker(commands.Cog):
                 name='Total (individual, last 24h)',
                 value='\n'.join([f'**{x.title()}:** {y}' for x, y in last_24_i.items()]) or 'No hunts found.'
             )
+
+        embed.description = 'Here are your hunts stats. If there is nothing here, try hunting and checking again!'
 
         return await ctx.send(embed=embed)
 
