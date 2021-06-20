@@ -1,6 +1,7 @@
 import json
 import logging
 
+import discord
 import pendulum
 import pymongo.errors
 from discord.ext import commands
@@ -31,6 +32,12 @@ TRACKED_COMMANDS = {
     'hunt h': 12,
     'ascended hunt hardmode': 13,
     'ascended hunt h': 14
+}
+
+EPIC_EVENTS = {
+    'ultra bait': {'msg': 'Placing the ultra bait...', 'id': 101},
+    'epic seed': {'msg': 'Placing the epic seed...', 'id': 102},
+    'coin trumpet': {'msg': 'Summoning the coin rain...', 'id': 103}
 }
 
 
@@ -98,35 +105,57 @@ class Tracker(commands.Cog):
             return None
 
         cmd = msg.content.lower().lstrip('rpg ')
+        epic_cmd = cmd.strip().lstrip('use').strip()
 
-        if cmd in TRACKED_COMMANDS:
+        time = pendulum.now(tz=pendulum.tz.UTC)
+        time_stamp = time.format('YYYY-MM_DD_HH')
+        in_tracked, in_epic = False, False
 
-            def check(m):
-                return m.channel.id == msg.channel.id and m.author.id == 555955826880413696 and \
-                       len(m.embeds) == 0 and msg.author.name.lower() in m.content.lower()
-
-            try:
-                await self.bot.wait_for('message', check=check, timeout=3)
-            except TimeoutError:
-                return None
-
-            cmd_id = str(TRACKED_COMMANDS[cmd])
-
-            time = pendulum.now(tz=pendulum.tz.UTC)
-
+        if (in_tracked := cmd in TRACKED_COMMANDS) or (in_epic := epic_cmd in EPIC_EVENTS):
             values = await self.redis.hgetall(str_id, encoding='utf-8')
-
-            time_stamp = time.format('YYYY-MM_DD_HH')
 
             time_values = json.loads(values.get(time_stamp, '{}'))
 
-            time_values.update(
-                {cmd_id: time_values.get(cmd_id, 0) + 1}
-            )
+            if in_tracked:
 
-            values[time_stamp] = json.dumps(time_values)
+                def check(m):
+                    return m.channel.id == msg.channel.id and m.author.id == 555955826880413696 and \
+                           len(m.embeds) == 0 and msg.author.name.lower() in m.content.lower()
 
-            await self.redis.hmset_dict(str_id, values)
+                try:
+                    await self.bot.wait_for('message', check=check, timeout=3)
+                except TimeoutError:
+                    return None
+
+                cmd_id = str(TRACKED_COMMANDS[cmd])
+
+                time_values.update(
+                    {cmd_id: time_values.get(cmd_id, 0) + 1}
+                )
+
+                values[time_stamp] = json.dumps(time_values)
+
+                return await self.redis.hmset_dict(str_id, values)
+
+            elif in_epic:
+                # def check(m):
+                #     return m.channel.id == msg.channel.id and m.author.id == 555955826880413696 and \
+                #            len(m.embeds) == 0 and m.content.lower() == EPIC_EVENTS[epic_cmd]['msg'].lower()
+                #
+                # try:
+                #     await self.bot.wait_for('message', check=check, timeout=3)
+                # except TimeoutError:
+                #     return None
+
+                cmd_id = str(EPIC_EVENTS[epic_cmd]['id'])
+
+                time_values.update({
+                    cmd_id: time_values.get(cmd_id, 0) + 1
+                })
+
+                values[time_stamp] = json.dumps(time_values)
+
+                return await self.redis.hmset_dict(str_id, values)
 
     @commands.group(name='stats', invoke_without_command=True)
     @commands.cooldown(3, 15, commands.BucketType.user)
@@ -141,7 +170,7 @@ class Tracker(commands.Cog):
 
         if not who:
             who = ctx.author
-        
+
         if not await self.redis.sismember(f'opted-{self.env}', str(who.id)):
             if who.id == ctx.author.id:
                 return await ctx.send(embed=ErrorEmbed(ctx, title='Stats Error!', description='You must sign up for '
@@ -173,7 +202,9 @@ class Tracker(commands.Cog):
                 hunt_index = list(TRACKED_COMMANDS.values()).index(int(hunt_type))
                 full_hunt_type = list(TRACKED_COMMANDS.keys())[hunt_index]
 
-                h_type = 'together' if int(hunt_type) < 10 else 'individual'
+                h_type = 'together' if int(hunt_type) < 10 else 'individual' if int(hunt_type) < 100 else None
+                if h_type is None:
+                    continue
 
                 total_hunts[h_type]['total']['total'] = hunt_count + total_hunts[h_type]['total'].get('total', 0)
                 total_hunts[h_type]['total'][full_hunt_type] = hunt_count + \
@@ -210,6 +241,75 @@ class Tracker(commands.Cog):
                 )
 
         embed.set_footer(text=embed.footer.text + ' | Use tb!optin to sign-up', icon_url=embed.footer.icon_url)
+
+        return await ctx.send(embed=embed)
+
+    @tracked_stats.command(name='epic')
+    @commands.cooldown(3, 15, commands.BucketType.user)
+    @commands.guild_only()
+    async def tracked_epic(self, ctx, hours: typing.Optional[int] = 24, who: typing.Optional[discord.Member] = None):
+        """See how many tracked epic events you have"""
+        who = who or ctx.author
+        if not await self.redis.sismember(f'opted-{self.env}', str(who.id)):
+            if who.id == ctx.author.id:
+                return await ctx.send(embed=ErrorEmbed(ctx, title='Stats Error!', description='You must sign up for '
+                                                                                              'tracking to display '
+                                                                                              'stats. See `tb!optin`'))
+            return await ctx.send(
+                embed=ErrorEmbed(ctx, title='Stats Error!', description=f'{who.name} has not signed up for hunt'
+                                                                        f' tracking.')
+            )
+        content = await self.redis.hgetall(f'redis-tracked-{self.env}-{ctx.guild.id}:{str(who.id)}', encoding='utf-8')
+        out = {k: json.loads(v) for k, v in content.items()}
+
+        total_epic = {'total': {}, 'last_x': {}}
+
+        now = pendulum.now(tz=pendulum.tz.UTC)
+
+        hours = min(max(hours, 1), 48)
+
+        for timestamp, events in out.items():
+            time = pendulum.from_format(timestamp, 'YYYY-MM_DD_HH', tz=pendulum.tz.UTC)
+            diff = time.diff(now, False).in_hours()
+
+            for hunt_type, count in events.items():
+                if int(hunt_type) < 100:
+                    continue
+
+                full_event_type = next(name for name, details in EPIC_EVENTS.items() if int(hunt_type) == details['id'])
+
+                total_epic['total'][full_event_type] = total_epic['total'].get(full_event_type, 0) + count
+                if diff <= hours:
+                    total_epic['last_x'][full_event_type] = total_epic['last_x'].get(full_event_type, 0) + count
+
+        embed = DefaultEmbed(ctx, title='Epic Events Stats')
+        embed.set_footer(text=embed.footer.text + ' | Use tb!optin to sign-up', icon_url=embed.footer.icon_url)
+
+        if total_epic['total']:
+
+            total_epic['total'] = OrderedDict(
+                sorted(total_epic['total'].items(), key=itemgetter(1), reverse=True)
+            )
+
+            embed.add_field(
+                name='Total Events (all time)',
+                value='\n'.join([f'**{x.title()}:** {y}'
+                                 for x, y in total_epic['total'].items()]) or 'No hunts found.'
+            )
+        if total_epic['last_x']:
+
+            total_epic['last_x'] = OrderedDict(
+                sorted(total_epic['last_x'].items(), key=itemgetter(1), reverse=True)
+            )
+
+            embed.add_field(
+                name=f'Total Events (last {hours}h)',
+                value='\n'.join([f'**{x.title()}:** {y}'
+                                 for x, y in total_epic['last_x'].items()]) or 'No hunts found.'
+            )
+
+        embed.description = f'Epic Event stats for {who.name}#{who.discriminator}. If there is nothing here, I have' \
+                            f' no tracked epic events.'
 
         return await ctx.send(embed=embed)
 
