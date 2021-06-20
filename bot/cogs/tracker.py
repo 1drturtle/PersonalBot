@@ -332,9 +332,9 @@ class Tracker(commands.Cog):
 
         return await ctx.send(f'guild `{guild}` added to whitelist.')
 
-    @tracked_stats.command(name='owner', hidden=True)
+    @tracked_stats.command(name='admin', hidden=True)
     @commands.check_any(commands.is_owner(), *MOD_OR_ADMIN)
-    async def owner_stats(self, ctx):
+    async def admin_stats(self, ctx):
         """Shows stats about the bot. Requires the Moderator or Admin role."""
         embed = DefaultEmbed(ctx)
         embed.title = 'Owner Debug Stats'
