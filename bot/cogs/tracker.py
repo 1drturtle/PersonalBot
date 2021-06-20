@@ -73,7 +73,7 @@ class Tracker(commands.Cog):
             return await ctx.send('Operation cancelled.', delete_after=10)
 
         await self.redis.srem(f'opted-{self.env}', str(ctx.author.id))
-        await self.redis.delete(f'redis-tracked-{self.env}:{ctx.author.id}')
+        await self.redis.delete(f'redis-tracked-{self.env}-{ctx.guild.id}:{ctx.author.id}')
         return await ctx.send(
             embed=SuccessEmbed(
                 ctx, title='Data Cleared',
@@ -90,7 +90,7 @@ class Tracker(commands.Cog):
         if not (msg.guild.id in self.bot.whitelist):
             return
 
-        str_id = f'redis-tracked-{self.env}:{str(msg.author.id)}'
+        str_id = f'redis-tracked-{self.env}-{msg.guild.id}:{str(msg.author.id)}'
         if not await self.redis.sismember(f'opted-{self.env}', str(msg.author.id)):
             return None
 
@@ -153,7 +153,7 @@ class Tracker(commands.Cog):
                                                                             f' tracking.')
                 )
 
-        content = await self.redis.hgetall(f'redis-tracked-{self.env}:{str(who.id)}', encoding='utf-8')
+        content = await self.redis.hgetall(f'redis-tracked-{self.env}-{ctx.guild.id}:{str(who.id)}', encoding='utf-8')
         out = {k: json.loads(v) for k, v in content.items()}
 
         now = pendulum.now(tz=pendulum.tz.UTC)
