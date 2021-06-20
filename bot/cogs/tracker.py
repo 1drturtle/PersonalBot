@@ -61,7 +61,7 @@ class Tracker(commands.Cog):
         __**irrevocable**__. """
 
         await ctx.send('Are you **sure** you want to clear your data? This action is **irrevocable** and will result'
-                       'in all of your tracked hunts being deleted. (Respond yes/no)')
+                       ' in all of your tracked hunts being deleted.\n(Respond yes/no)')
 
         def check(msg):
             return is_yes(msg.content) and msg.channel.id == ctx.channel.id and \
@@ -108,7 +108,6 @@ class Tracker(commands.Cog):
             try:
                 await self.bot.wait_for('message', check=check, timeout=3)
             except TimeoutError:
-                log.info('could not find erpg hunt')
                 return None
 
             cmd_id = str(TRACKED_COMMANDS[cmd])
