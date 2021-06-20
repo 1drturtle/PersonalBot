@@ -115,6 +115,7 @@ class Tracker(commands.Cog):
             values[time_stamp] = json.dumps(time_values)
 
             await self.redis.hmset_dict(str_id, values)
+            log.debug(f'[tracker] {msg.author} ({msg.author.id}) did {cmd}')
 
     @commands.command(name='stats')
     @commands.cooldown(3, 15, commands.BucketType.user)
@@ -221,6 +222,7 @@ class Tracker(commands.Cog):
             pass
 
         self.bot.whitelist.add(channel.id)
+        log.info(f'[whitelist] added {channel} ({channel.id}) to whitelist')
 
         return await ctx.send(f'channel `{channel}` added to whitelist.')
 
