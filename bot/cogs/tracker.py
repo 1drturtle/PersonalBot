@@ -232,6 +232,20 @@ class Tracker(commands.Cog):
 
         return await ctx.send(f'guild `{guild}` added to whitelist.')
 
+    @commands.command(name='owner_stats', hidden=True)
+    @commands.is_owner()
+    async def owner_stats(self, ctx):
+        """shows owner-only stats about the bot"""
+        embed = DefaultEmbed(ctx)
+        embed.title = 'Owner Debug Stats'
+        embed.add_field(
+            name='# of users',
+            value=f"{len(await self.redis.smembers('opted-production'))} opted-in users."
+        )
+        embed.description = 'WIP'
+
+        return await ctx.send(embed=embed)
+
 
 def setup(bot):
     bot.add_cog(Tracker(bot))
