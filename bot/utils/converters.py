@@ -10,7 +10,7 @@ class MemberOrId(commands.Converter):
         except commands.MemberNotFound:
             if str(arg).isnumeric():
                 if len(str(arg)) < 18:
-                    return None
+                    raise commands.MemberNotFound(f'Could not find a member with arg `{arg}`')
                 member = await ctx.guild.fetch_member(arg)
             else:
                 member = None
