@@ -41,7 +41,7 @@ class Tracker(commands.Cog):
         self.env = self.bot.config.ENVIRONMENT
 
     async def cog_check(self, ctx):
-        return ctx.channel.id in self.bot.whitelist
+        return getattr(ctx.guild, 'id', 0) in self.bot.whitelist
 
     @commands.command(name='optin')
     async def opt_in(self, ctx):
@@ -87,7 +87,7 @@ class Tracker(commands.Cog):
         if not msg.guild:
             return
 
-        if not (msg.channel.id in self.bot.whitelist):
+        if not (msg.guild.id in self.bot.whitelist):
             return
 
         str_id = f'redis-tracked-{self.env}:{str(msg.author.id)}'
@@ -213,22 +213,22 @@ class Tracker(commands.Cog):
 
     @commands.command(name='whitelist', hidden=True)
     @commands.is_owner()
-    async def whitelist(self, ctx, channel_id: int):
+    async def whitelist(self, ctx, guild_id: int):
         """whitelist a server to track hunts"""
 
-        channel = self.bot.get_channel(channel_id)
-        if not channel:
-            return await ctx.send('could not find channel with id ' + channel_id)
+        guild = self.bot.get_guild(guild_id)
+        if not guild:
+            return await ctx.send('could not find server with id ' + str(guild_id))
 
         try:
-            await self.bot.mdb['whitelist'].insert_one({'_id': channel.id})
+            await self.bot.mdb['whitelist'].insert_one({'_id': guild.id})
         except pymongo.errors.DuplicateKeyError:
             pass
 
-        self.bot.whitelist.add(channel.id)
-        log.info(f'[whitelist] added #{channel} ({channel.id}) to whitelist')
+        self.bot.whitelist.add(guild.id)
+        log.info(f'[whitelist] added {guild} ({guild.id}) to whitelist')
 
-        return await ctx.send(f'channel `{channel}` added to whitelist.')
+        return await ctx.send(f'guild `{guild}` added to whitelist.')
 
 
 def setup(bot):
