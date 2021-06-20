@@ -23,3 +23,9 @@ class ErrorEmbed(DefaultEmbed):
     def __init__(self, ctx, **kwargs):
         super(ErrorEmbed, self).__init__(ctx, **kwargs)
         self.colour = discord.Colour.red()
+
+
+class MemberEmbed(DefaultEmbed):
+    def __init__(self, ctx, who, **kwargs):
+        super(DefaultEmbed, self).__init__(ctx, **kwargs)
+        self.set_author(name=who.name, icon_url=who.avatar_url)

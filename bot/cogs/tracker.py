@@ -40,6 +40,8 @@ EPIC_EVENTS = {
     'coin trumpet': {'msg': 'Summoning the coin rain...', 'id': 103}
 }
 
+MOD_OR_ADMIN = [commands.has_role('Admin'), commands.has_role('Moderator')]
+
 
 class Tracker(commands.Cog):
     def __init__(self, bot):
@@ -215,7 +217,7 @@ class Tracker(commands.Cog):
                     total_hunts[h_type]['last_x'][full_hunt_type] = hunt_count + \
                                                                     total_hunts[h_type]['last_x'].get(full_hunt_type, 0)
 
-        embed = DefaultEmbed(ctx, title='Hunt Stats')
+        embed = MemberEmbed(ctx, who, title='Hunt Stats')
 
         embed.description = 'Here are the hunts stats. If there is nothing here, try hunting and checking again!'
 
@@ -282,7 +284,7 @@ class Tracker(commands.Cog):
                 if diff <= hours:
                     total_epic['last_x'][full_event_type] = total_epic['last_x'].get(full_event_type, 0) + count
 
-        embed = DefaultEmbed(ctx, title='Epic Events Stats')
+        embed = MemberEmbed(ctx, who, title='Epic Event Stats')
         embed.set_footer(text=embed.footer.text + ' | Use tb!optin to sign-up', icon_url=embed.footer.icon_url)
 
         if total_epic['total']:
@@ -331,9 +333,9 @@ class Tracker(commands.Cog):
         return await ctx.send(f'guild `{guild}` added to whitelist.')
 
     @tracked_stats.command(name='owner', hidden=True)
-    @commands.is_owner()
+    @commands.check_any(commands.is_owner(), *MOD_OR_ADMIN)
     async def owner_stats(self, ctx):
-        """shows owner-only stats about the bot"""
+        """Shows stats about the bot. Requires the Moderator or Admin role."""
         embed = DefaultEmbed(ctx)
         embed.title = 'Owner Debug Stats'
         embed.add_field(
