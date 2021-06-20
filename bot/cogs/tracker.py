@@ -128,7 +128,7 @@ class Tracker(commands.Cog):
 
             await self.redis.hmset_dict(str_id, values)
 
-    @commands.command(name='stats')
+    @commands.group(name='stats', invoke_without_command=True)
     @commands.cooldown(3, 15, commands.BucketType.user)
     @commands.guild_only()
     async def tracked_stats(self, ctx, hours: typing.Optional[int] = 24, who: typing.Optional[discord.Member] = None):
@@ -213,7 +213,7 @@ class Tracker(commands.Cog):
 
         return await ctx.send(embed=embed)
 
-    @commands.command(name='whitelist', hidden=True)
+    @tracked_stats.command(name='whitelist', hidden=True)
     @commands.is_owner()
     async def whitelist(self, ctx, guild_id: int):
         """whitelist a server to track hunts"""
@@ -232,7 +232,7 @@ class Tracker(commands.Cog):
 
         return await ctx.send(f'guild `{guild}` added to whitelist.')
 
-    @commands.command(name='owner_stats', hidden=True)
+    @tracked_stats.command(name='owner', hidden=True)
     @commands.is_owner()
     async def owner_stats(self, ctx):
         """shows owner-only stats about the bot"""
