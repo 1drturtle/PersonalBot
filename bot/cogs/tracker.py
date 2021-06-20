@@ -162,6 +162,10 @@ class Tracker(commands.Cog):
                     total_hunts[h_type]['last_x'][full_hunt_type] = hunt_count + \
                                                                     total_hunts[h_type]['last_x'].get(full_hunt_type, 0)
 
+        embed = DefaultEmbed(ctx, title='Hunt Stats')
+
+        embed.description = 'Here are your hunts stats. If there is nothing here, try hunting and checking again!'
+
         for x in ('together', 'individual'):
             total_hunts[x]['total'] = OrderedDict(
                 sorted(total_hunts[x]['total'].items(), key=itemgetter(1), reverse=True)
@@ -169,37 +173,19 @@ class Tracker(commands.Cog):
             total_hunts[x]['last_x'] = OrderedDict(
                 sorted(total_hunts[x]['last_x'].items(), key=itemgetter(1), reverse=True)
             )
-
-        embed = DefaultEmbed(ctx, title='Hunt Stats')
-
-        embed.description = 'Here are your hunts stats. If there is nothing here, try hunting and checking again!'
-
-        if total_hunts['together']['total']:
-            embed.add_field(
-                name='Total Hunts (together, all time)',
-                value='\n'.join([f'**{x.title()}:** {y}'
-                                 for x, y in total_hunts['together']['total'].items()]) or 'No hunts found.'
-            )
-            embed.add_field(
-                name=f'Total Hunts (together, last {hours}h)',
-                value='\n'.join([f'**{x.title()}:** {y}'
-                                 for x, y in total_hunts['together']['last_x'].items()]) or 'No hunts found.'
-            )
-
-        if total_hunts['individual']['total']:
-            if total_hunts['together']['total']:
-                embed.add_field(name='\u200b', value='\u200b', inline=False)
-
-            embed.add_field(
-                name='Total Hunts (individual, all time)',
-                value='\n'.join([f'**{x.title()}:** {y}'
-                                 for x, y in total_hunts['individual']['total'].items()]) or 'No hunts found.'
-            )
-            embed.add_field(
-                name=f'Total Hunts (individual, last {hours}h)',
-                value='\n'.join([f'**{x.title()}:** {y}'
-                                 for x, y in total_hunts['individual']['last_x'].items()]) or 'No hunts found.'
-            )
+            if total_hunts[x]['total']:
+                if x == 'individual' and total_hunts['together']['total']:
+                    embed.add_field(name='\u200b', value='\u200b', inline=False)
+                embed.add_field(
+                    name=f'Total Hunts ({x}, all time)',
+                    value='\n'.join([f'**{x.title()}:** {y}'
+                                     for x, y in total_hunts[x]['total'].items()]) or 'No hunts found.'
+                )
+                embed.add_field(
+                    name=f'Total Hunts ({x}, last {hours}h)',
+                    value='\n'.join([f'**{x.title()}:** {y}'
+                                     for x, y in total_hunts[x]['last_x'].items()]) or 'No hunts found.'
+                )
 
         return await ctx.send(embed=embed)
 
