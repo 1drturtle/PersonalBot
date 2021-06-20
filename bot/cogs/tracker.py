@@ -218,7 +218,8 @@ class Tracker(commands.Cog):
                     total_hunts[h_type]['last_x'][full_hunt_type] = hunt_count + \
                                                                     total_hunts[h_type]['last_x'].get(full_hunt_type, 0)
 
-        embed = MemberEmbed(ctx, who, title=f'Hunt Stats for {who.name}')
+        embed = MemberEmbed(ctx, who, title=f'Hunt Stats for {who.name}'
+            if who.id != ctx.author.id else 'Hunt Stats')
 
         embed.description = 'Here are the hunts stats. If there is nothing here, try hunting and checking again!'
 
@@ -285,7 +286,8 @@ class Tracker(commands.Cog):
                 if diff <= hours:
                     total_epic['last_x'][full_event_type] = total_epic['last_x'].get(full_event_type, 0) + count
 
-        embed = MemberEmbed(ctx, who, title=f'Epic Event Stats for {who.name}')
+        embed = MemberEmbed(ctx, who, title=f'Epic Event Stats for {who.name}'
+            if who.id != ctx.author.id else 'Epic Event Stats')
         embed.set_footer(text=embed.footer.text + ' | Use tb!optin to sign-up', icon_url=embed.footer.icon_url)
 
         if total_epic['total']:
