@@ -138,14 +138,14 @@ class Tracker(commands.Cog):
                 return await self.redis.hmset_dict(str_id, values)
 
             elif in_epic:
-                # def check(m):
-                #     return m.channel.id == msg.channel.id and m.author.id == 555955826880413696 and \
-                #            len(m.embeds) == 0 and m.content.lower() == EPIC_EVENTS[epic_cmd]['msg'].lower()
-                #
-                # try:
-                #     await self.bot.wait_for('message', check=check, timeout=3)
-                # except TimeoutError:
-                #     return None
+                def check(m):
+                    return m.channel.id == msg.channel.id and m.author.id == 555955826880413696 and \
+                           len(m.embeds) == 0 and m.content.lower() == EPIC_EVENTS[epic_cmd]['msg'].lower()
+
+                try:
+                    await self.bot.wait_for('message', check=check, timeout=3)
+                except TimeoutError:
+                    return None
 
                 cmd_id = str(EPIC_EVENTS[epic_cmd]['id'])
 
@@ -199,12 +199,12 @@ class Tracker(commands.Cog):
             diff = time.diff(now, False).in_hours()
 
             for hunt_type, hunt_count in hunts.items():
-                hunt_index = list(TRACKED_COMMANDS.values()).index(int(hunt_type))
-                full_hunt_type = list(TRACKED_COMMANDS.keys())[hunt_index]
-
                 h_type = 'together' if int(hunt_type) < 10 else 'individual' if int(hunt_type) < 100 else None
                 if h_type is None:
                     continue
+
+                hunt_index = list(TRACKED_COMMANDS.values()).index(int(hunt_type))
+                full_hunt_type = list(TRACKED_COMMANDS.keys())[hunt_index]
 
                 total_hunts[h_type]['total']['total'] = hunt_count + total_hunts[h_type]['total'].get('total', 0)
                 total_hunts[h_type]['total'][full_hunt_type] = hunt_count + \
@@ -286,7 +286,6 @@ class Tracker(commands.Cog):
         embed.set_footer(text=embed.footer.text + ' | Use tb!optin to sign-up', icon_url=embed.footer.icon_url)
 
         if total_epic['total']:
-
             total_epic['total'] = OrderedDict(
                 sorted(total_epic['total'].items(), key=itemgetter(1), reverse=True)
             )
@@ -297,7 +296,6 @@ class Tracker(commands.Cog):
                                  for x, y in total_epic['total'].items()]) or 'No hunts found.'
             )
         if total_epic['last_x']:
-
             total_epic['last_x'] = OrderedDict(
                 sorted(total_epic['last_x'].items(), key=itemgetter(1), reverse=True)
             )
