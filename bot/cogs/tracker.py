@@ -11,6 +11,8 @@ from asyncio import TimeoutError
 
 from utils.embeds import *
 
+import typing
+
 log = logging.getLogger(__name__)
 
 TRACKED_COMMANDS = {
@@ -119,19 +121,29 @@ class Tracker(commands.Cog):
     @commands.command(name='stats')
     @commands.cooldown(3, 15, commands.BucketType.user)
     @commands.guild_only()
-    async def tracked_stats(self, ctx, hours=24):
+    async def tracked_stats(self, ctx, hours: typing.Optional[int] = 24, who: typing.Optional[discord.Member] = None):
         """
         Shows your tracked hunts!
 
         `hours` - Amount of hours to show in the Last X hours field. (min 1, max 48).
+        `who`- Who to look up the hunts of. If not specified, defaults to yourself
         """
-        
-        if not await self.redis.sismember(f'opted-{self.env}', str(ctx.author.id)):
-            return await ctx.send(embed=ErrorEmbed(ctx, title='Stats Error!', description='You must sign up for'
-                                                                                          'tracking to display'
-                                                                                          'stats.'))
 
-        content = await self.redis.hgetall(f'redis-tracked-{self.env}:{str(ctx.author.id)}', encoding='utf-8')
+        if not who:
+            who = ctx.author
+        
+        if not await self.redis.sismember(f'opted-{self.env}', str(who.id)):
+            if who.id == ctx.author.id:
+                return await ctx.send(embed=ErrorEmbed(ctx, title='Stats Error!', description='You must sign up for'
+                                                                                              'tracking to display'
+                                                                                              'stats.'))
+            else:
+                return await ctx.send(
+                    embed=ErrorEmbed(ctx, title='Stats Error!', description=f'{who.name} has not signed up for hunt'
+                                                                            f' tracking.')
+                )
+
+        content = await self.redis.hgetall(f'redis-tracked-{self.env}:{str(who.id)}', encoding='utf-8')
         out = {k: json.loads(v) for k, v in content.items()}
 
         now = pendulum.now(tz=pendulum.tz.UTC)
@@ -164,7 +176,7 @@ class Tracker(commands.Cog):
 
         embed = DefaultEmbed(ctx, title='Hunt Stats')
 
-        embed.description = 'Here are your hunts stats. If there is nothing here, try hunting and checking again!'
+        embed.description = 'Here are the hunts stats. If there is nothing here, try hunting and checking again!'
 
         for x in ('together', 'individual'):
             total_hunts[x]['total'] = OrderedDict(
