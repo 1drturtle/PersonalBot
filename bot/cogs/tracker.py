@@ -38,8 +38,8 @@ class Tracker(commands.Cog):
         self.redis = self.bot.redis_db
         self.env = self.bot.config.ENVIRONMENT
 
-    # async def cog_check(self, ctx):
-    #     return getattr(ctx.guild, 'id', 0) in self.bot.whitelist
+    async def cog_check(self, ctx):
+        return ctx.channel.id in self.bot.whitelist
 
     @commands.command(name='optin')
     async def opt_in(self, ctx):
@@ -115,7 +115,6 @@ class Tracker(commands.Cog):
             values[time_stamp] = json.dumps(time_values)
 
             await self.redis.hmset_dict(str_id, values)
-            log.debug(f'[tracker] {msg.author} ({msg.author.id}) did {cmd}')
 
     @commands.command(name='stats')
     @commands.cooldown(3, 15, commands.BucketType.user)
@@ -126,9 +125,6 @@ class Tracker(commands.Cog):
 
         `hours` - Amount of hours to show in the Last X hours field. (min 1, max 48).
         """
-        
-        if not (ctx.channel.id in self.bot.whitelist):
-            return
         
         if not await self.redis.sismember(f'opted-{self.env}', str(ctx.author.id)):
             return await ctx.send(embed=ErrorEmbed(ctx, title='Stats Error!', description='You must sign up for'
@@ -222,7 +218,7 @@ class Tracker(commands.Cog):
             pass
 
         self.bot.whitelist.add(channel.id)
-        log.info(f'[whitelist] added {channel} ({channel.id}) to whitelist')
+        log.info(f'[whitelist] added #{channel} ({channel.id}) to whitelist')
 
         return await ctx.send(f'channel `{channel}` added to whitelist.')
 

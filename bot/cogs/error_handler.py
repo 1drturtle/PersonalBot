@@ -102,6 +102,9 @@ class CommandErrorHandler(commands.Cog):
                 except discord.HTTPException:
                     pass
 
+        elif isinstance(error, commands.CheckFailure):
+            pass
+
         else:
             # All other Errors not returned come here. And we can just print the default TraceBack.
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
