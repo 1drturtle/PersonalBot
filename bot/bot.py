@@ -62,7 +62,8 @@ class MyBot(commands.Bot):
         return pendulum.now(tz=pendulum.tz.UTC) - self.launch_time
 
     async def startup(self):
-        data = await self.mdb['whitelisted'].find().to_list(length=None)
+        data = await self.mdb['whitelist'].find().to_list(length=None)
+
         self.whitelist = set([d.get('_id') for d in data])
 
     async def close(self):
