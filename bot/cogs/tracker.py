@@ -151,7 +151,7 @@ class Tracker(commands.Cog):
                                  for x, y in total_hunts['together']['total'].items()]) or 'No hunts found.'
             )
             embed.add_field(
-                name=f'Total Hunts (together, last {hours}x)',
+                name=f'Total Hunts (together, last {hours}h)',
                 value='\n'.join([f'**{x.title()}:** {y}'
                                  for x, y in total_hunts['together']['last_x'].items()]) or 'No hunts found.'
             )
@@ -166,7 +166,7 @@ class Tracker(commands.Cog):
                                  for x, y in total_hunts['individual']['total'].items()]) or 'No hunts found.'
             )
             embed.add_field(
-                name=f'Total Hunts (individual, last {hours}x)',
+                name=f'Total Hunts (individual, last {hours}h)',
                 value='\n'.join([f'**{x.title()}:** {y}'
                                  for x, y in total_hunts['individual']['last_x'].items()]) or 'No hunts found.'
             )
