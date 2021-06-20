@@ -9,6 +9,7 @@ from collections import OrderedDict
 from operator import itemgetter
 from utils.functions import is_yes
 from asyncio import TimeoutError
+from utils.converters import MemberOrId
 
 from utils.embeds import *
 
@@ -162,7 +163,7 @@ class Tracker(commands.Cog):
     @commands.group(name='stats', invoke_without_command=True)
     @commands.cooldown(3, 15, commands.BucketType.user)
     @commands.guild_only()
-    async def tracked_stats(self, ctx, hours: typing.Optional[int] = 24, who: typing.Optional[discord.Member] = None):
+    async def tracked_stats(self, ctx, who: MemberOrId = None, hours: typing.Optional[int] = 24):
         """
         Shows your tracked hunts!
 
@@ -249,7 +250,7 @@ class Tracker(commands.Cog):
     @tracked_stats.command(name='epic')
     @commands.cooldown(3, 15, commands.BucketType.user)
     @commands.guild_only()
-    async def tracked_epic(self, ctx, hours: typing.Optional[int] = 24, who: typing.Optional[discord.Member] = None):
+    async def tracked_epic(self, ctx, who: MemberOrId = None, hours: typing.Optional[int] = 24):
         """See how many tracked epic events you have"""
         who = who or ctx.author
         if not await self.redis.sismember(f'opted-{self.env}', str(who.id)):
