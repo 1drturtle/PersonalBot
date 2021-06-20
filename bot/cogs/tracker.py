@@ -240,7 +240,7 @@ class Tracker(commands.Cog):
         embed.title = 'Owner Debug Stats'
         embed.add_field(
             name='# of users',
-            value=f"{len(await self.redis.smembers('opted-production'))} opted-in users."
+            value=f"{len(await self.redis.smembers(f'opted-{self.env}'))} opted-in users."
         )
         embed.description = 'WIP'
 
