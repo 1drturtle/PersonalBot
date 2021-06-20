@@ -105,6 +105,11 @@ class CommandErrorHandler(commands.Cog):
         elif isinstance(error, commands.CheckFailure):
             pass
 
+        elif isinstance(error, commands.MemberNotFound):
+            await ctx.send(embed=ErrorEmbed(ctx,
+                                            title='Member Not Found',
+                                            description='Could not find the member based on the provided arguments.'))
+
         else:
             # All other Errors not returned come here. And we can just print the default TraceBack.
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
