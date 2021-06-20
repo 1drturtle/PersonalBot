@@ -104,9 +104,12 @@ class Tracker(commands.Cog):
         content = await self.redis.hgetall(f'redis-tracked-{self.env}:{str(ctx.author.id)}', encoding='utf-8')
         out = {k: json.loads(v) for k, v in content.items()}
 
-        total, last_24 = {}, {}
-        total_i, last_24_i = {}, {}
         now = pendulum.now(tz=pendulum.tz.UTC)
+
+        total_hunts = {
+            'together': {'total': {}, 'last_x': {}},
+            'individual': {'total': {}, 'last_x': {}}
+        }
 
         hours = min(max(hours, 1), 48)
 
@@ -118,46 +121,55 @@ class Tracker(commands.Cog):
                 hunt_index = list(TRACKED_COMMANDS.values()).index(int(hunt_type))
                 full_hunt_type = list(TRACKED_COMMANDS.keys())[hunt_index]
 
-                if int(hunt_type) < 10:
-                    total['total'] = hunt_count + total.get('total', 0)
-                    total[full_hunt_type] = hunt_count + total.get(full_hunt_type, 0)
-                    if diff <= hours:
-                        last_24['total'] = hunt_count + last_24.get('total', 0)
-                        last_24[full_hunt_type] = hunt_count + last_24.get(full_hunt_type, 0)
-                else:
-                    total_i['total'] = hunt_count + total_i.get('total', 0)
-                    total_i[full_hunt_type] = hunt_count + total_i.get(full_hunt_type, 0)
-                    if diff <= hours:
-                        last_24_i['total'] = hunt_count + last_24_i.get('total', 0)
-                        last_24_i[full_hunt_type] = hunt_count + last_24_i.get(full_hunt_type, 0)
+                h_type = 'together' if int(hunt_type) < 10 else 'individual'
 
-        total = OrderedDict(sorted(total.items(), key=itemgetter(1), reverse=True))
-        last_24 = OrderedDict(sorted(last_24.items(), key=itemgetter(1), reverse=True))
+                total_hunts[h_type]['total']['total'] = hunt_count + total_hunts[h_type]['total'].get('total', 0)
+                total_hunts[h_type]['total'][full_hunt_type] = hunt_count + \
+                                                               total_hunts[h_type]['total'].get(full_hunt_type, 0)
 
-        embed = DefaultEmbed(ctx, title='Hunt Together Stats')
-        if total:
-            embed.add_field(
-                name='Total (together, all-time)',
-                value='\n'.join([f'**RPG {x.title()}:** {y}' for x, y in total.items()]) or 'No hunts found.'
+                if diff <= hours:
+                    total_hunts[h_type]['last_x']['total'] = hunt_count + total_hunts[h_type]['last_x'].get('total', 0)
+                    total_hunts[h_type]['last_x'][full_hunt_type] = hunt_count + \
+                                                                    total_hunts[h_type]['last_x'].get(full_hunt_type, 0)
+
+        for x in ('together', 'individual'):
+            total_hunts[x]['total'] = OrderedDict(
+                sorted(total_hunts[x]['total'].items(), key=itemgetter(1), reverse=True)
             )
-            embed.add_field(
-                name=f'Total (together, last {hours}h)',
-                value='\n'.join([f'**RPG {x.title()}:** {y}' for x, y in last_24.items()]) or 'No hunts found.'
+            total_hunts[x]['last_x'] = OrderedDict(
+                sorted(total_hunts[x]['last_x'].items(), key=itemgetter(1), reverse=True)
             )
 
-        if total_i:
-            if total:
-                embed.add_field(name='\u200b', value='\u200b', inline=False)
-            embed.add_field(
-                name='Total (individual, all-time)',
-                value='\n'.join([f'**RPG {x.title()}:** {y}' for x, y in total_i.items()]) or 'No hunts found.'
-            )
-            embed.add_field(
-                name=f'Total (individual, last {hours}h)',
-                value='\n'.join([f'**RPG {x.title()}:** {y}' for x, y in last_24_i.items()]) or 'No hunts found.'
-            )
+        embed = DefaultEmbed(ctx, title='Hunt Stats')
 
         embed.description = 'Here are your hunts stats. If there is nothing here, try hunting and checking again!'
+
+        if total_hunts['together']['total']:
+            embed.add_field(
+                name='Total Hunts (together, all time)',
+                value='\n'.join([f'**{x.title()}:** {y}'
+                                 for x, y in total_hunts['together']['total'].items()]) or 'No hunts found.'
+            )
+            embed.add_field(
+                name=f'Total Hunts (together, last {hours}x)',
+                value='\n'.join([f'**{x.title()}:** {y}'
+                                 for x, y in total_hunts['together']['last_x'].items()]) or 'No hunts found.'
+            )
+
+        if total_hunts['individual']['total']:
+            if total_hunts['together']['total']:
+                embed.add_field(name='\u200b', value='\u200b', inline=False)
+
+            embed.add_field(
+                name='Total Hunts (individual, all time)',
+                value='\n'.join([f'**{x.title()}:** {y}'
+                                 for x, y in total_hunts['individual']['total'].items()]) or 'No hunts found.'
+            )
+            embed.add_field(
+                name=f'Total Hunts (individual, last {hours}x)',
+                value='\n'.join([f'**{x.title()}:** {y}'
+                                 for x, y in total_hunts['individual']['last_x'].items()]) or 'No hunts found.'
+            )
 
         return await ctx.send(embed=embed)
 
@@ -179,6 +191,12 @@ class Tracker(commands.Cog):
         self.bot.whitelist.add(channel_id)
 
         return await ctx.send(f'channel `{channel}` added to whitelist.')
+
+    @commands.command(name='clear')
+    async def clear_data(self, ctx):
+        """Clears all of your data from the bot. This includes **all hunts** and the opt-in. This action is
+        __**irrevocable**__. """
+        pass
 
 
 def setup(bot):
