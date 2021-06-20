@@ -99,16 +99,18 @@ class Tracker(commands.Cog):
 
         cmd = msg.content.lower().lstrip('rpg ')
 
-        def check(m):
-            return m.channel.id == msg.channel.id and msg.author.id == 555955826880413696 and \
-                   len(msg.embeds) == 0
-
-        try:
-            await self.bot.wait_for('message', check=check, timeout=5)
-        except TimeoutError:
-            return None
-
         if cmd in TRACKED_COMMANDS:
+
+            def check(m):
+                return m.channel.id == msg.channel.id and m.author.id == 555955826880413696 and \
+                       len(m.embeds) == 0
+
+            try:
+                await self.bot.wait_for('message', check=check, timeout=3)
+            except TimeoutError:
+                log.info('could not find erpg hunt')
+                return None
+
             cmd_id = str(TRACKED_COMMANDS[cmd])
 
             time = pendulum.now(tz=pendulum.tz.UTC)
