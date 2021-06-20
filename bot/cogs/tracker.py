@@ -209,6 +209,8 @@ class Tracker(commands.Cog):
                                      for x, y in total_hunts[x]['last_x'].items()]) or 'No hunts found.'
                 )
 
+        embed.set_footer(text=embed.footer.text + ' | Use tb!optin to sign-up', icon_url=embed.footer.icon_url)
+
         return await ctx.send(embed=embed)
 
     @commands.command(name='whitelist', hidden=True)
