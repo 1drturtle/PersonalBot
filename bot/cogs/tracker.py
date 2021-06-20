@@ -163,7 +163,7 @@ class Tracker(commands.Cog):
     @commands.group(name='stats', invoke_without_command=True)
     @commands.cooldown(3, 15, commands.BucketType.user)
     @commands.guild_only()
-    async def tracked_stats(self, ctx, who: MemberOrId = None, hours: typing.Optional[int] = 24):
+    async def tracked_stats(self, ctx, who: typing.Optional[MemberOrId] = None, hours: typing.Optional[int] = 24):
         """
         Shows your tracked hunts!
 
@@ -218,7 +218,7 @@ class Tracker(commands.Cog):
                     total_hunts[h_type]['last_x'][full_hunt_type] = hunt_count + \
                                                                     total_hunts[h_type]['last_x'].get(full_hunt_type, 0)
 
-        embed = MemberEmbed(ctx, who, title='Hunt Stats')
+        embed = MemberEmbed(ctx, who, title=f'Hunt Stats for {who.name}')
 
         embed.description = 'Here are the hunts stats. If there is nothing here, try hunting and checking again!'
 
@@ -250,7 +250,7 @@ class Tracker(commands.Cog):
     @tracked_stats.command(name='epic')
     @commands.cooldown(3, 15, commands.BucketType.user)
     @commands.guild_only()
-    async def tracked_epic(self, ctx, who: MemberOrId = None, hours: typing.Optional[int] = 24):
+    async def tracked_epic(self, ctx, who: typing.Optional[MemberOrId] = None, hours: typing.Optional[int] = 24):
         """See how many tracked epic events you have"""
         who = who or ctx.author
         if not await self.redis.sismember(f'opted-{self.env}', str(who.id)):
@@ -285,7 +285,7 @@ class Tracker(commands.Cog):
                 if diff <= hours:
                     total_epic['last_x'][full_event_type] = total_epic['last_x'].get(full_event_type, 0) + count
 
-        embed = MemberEmbed(ctx, who, title='Epic Event Stats')
+        embed = MemberEmbed(ctx, who, title=f'Epic Event Stats for {who.name}')
         embed.set_footer(text=embed.footer.text + ' | Use tb!optin to sign-up', icon_url=embed.footer.icon_url)
 
         if total_epic['total']:

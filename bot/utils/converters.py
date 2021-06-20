@@ -6,9 +6,11 @@ class MemberOrId(commands.Converter):
     async def convert(self, ctx, arg):
 
         try:
-            member = commands.MemberConverter().convert(ctx, arg)
+            member = await commands.MemberConverter().convert(ctx, arg)
         except commands.MemberNotFound:
             if str(arg).isnumeric():
+                if len(str(arg)) < 18:
+                    return None
                 member = await ctx.guild.fetch_member(arg)
             else:
                 member = None
