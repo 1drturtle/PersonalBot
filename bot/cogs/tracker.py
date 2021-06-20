@@ -2,9 +2,12 @@ import json
 import logging
 
 import pendulum
+import pymongo.errors
 from discord.ext import commands
 from collections import OrderedDict
 from operator import itemgetter
+from utils.functions import is_yes
+from asyncio import TimeoutError
 
 from utils.embeds import *
 
@@ -49,6 +52,32 @@ class Tracker(commands.Cog):
         await self.redis.sadd(f'opted-{self.env}', str_id)
         embed = SuccessEmbed(ctx, title='Opted-in!', description='You have been opted-in to the RPG hunt tracker.')
         return await ctx.send(embed=embed)
+
+    @commands.command(name='cleardata')
+    async def clear_data(self, ctx):
+        """Clears all of your data from the bot. This includes **all hunts** and the opt-in. This action is
+        __**irrevocable**__. """
+
+        await ctx.send('Are you **sure** you want to clear your data? This action is **irrevocable** and will result'
+                       'in all of your tracked hunts being deleted. (Respond yes/no)')
+
+        def check(msg):
+            return is_yes(msg.content) and msg.channel.id == ctx.channel.id and \
+                   ctx.author.id == msg.author.id
+
+        try:
+            await self.bot.wait_for('message', check=check, timeout=20)
+        except TimeoutError:
+            return await ctx.send('Operation cancelled.', delete_after=10)
+
+        await self.redis.srem(f'opted-{self.env}', str(ctx.author.id))
+        await self.redis.delete(f'redis-tracked-{self.env}:{ctx.author.id}')
+        return await ctx.send(
+            embed=SuccessEmbed(
+                ctx, title='Data Cleared',
+                description=f'All data for {ctx.author.name}#{ctx.author.discriminator} has been removed from the bot.'
+            )
+        )
 
     @commands.Cog.listener(name='on_message')
     async def tracker_listener(self, msg):
@@ -186,21 +215,14 @@ class Tracker(commands.Cog):
         if not channel:
             return await ctx.send('could not find channel with id ' + channel_id)
 
-        await self.bot.mdb['whitelist'].update_one(
-            {'_id': channel_id},
-            {'$set': {'_id': channel_id}},
-            upsert=True
-        )
+        try:
+            await self.bot.mdb['whitelist'].insert_one({'_id': channel.id})
+        except pymongo.errors.DuplicateKeyError:
+            pass
 
-        self.bot.whitelist.add(channel_id)
+        self.bot.whitelist.add(channel.id)
 
         return await ctx.send(f'channel `{channel}` added to whitelist.')
-
-    @commands.command(name='clear')
-    async def clear_data(self, ctx):
-        """Clears all of your data from the bot. This includes **all hunts** and the opt-in. This action is
-        __**irrevocable**__. """
-        pass
 
 
 def setup(bot):
