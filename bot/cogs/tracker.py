@@ -103,7 +103,7 @@ class Tracker(commands.Cog):
 
             def check(m):
                 return m.channel.id == msg.channel.id and m.author.id == 555955826880413696 and \
-                       len(m.embeds) == 0
+                       len(m.embeds) == 0 and msg.author.name.lower() in m.content.lower()
 
             try:
                 await self.bot.wait_for('message', check=check, timeout=3)
