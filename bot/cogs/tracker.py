@@ -145,8 +145,8 @@ class Tracker(commands.Cog):
         if not await self.redis.sismember(f'opted-{self.env}', str(who.id)):
             if who.id == ctx.author.id:
                 return await ctx.send(embed=ErrorEmbed(ctx, title='Stats Error!', description='You must sign up for'
-                                                                                              'tracking to display'
-                                                                                              ' stats.'))
+                                                                                              'tracking to display '
+                                                                                              'stats. See `tb!optin`'))
             else:
                 return await ctx.send(
                     embed=ErrorEmbed(ctx, title='Stats Error!', description=f'{who.name} has not signed up for hunt'
