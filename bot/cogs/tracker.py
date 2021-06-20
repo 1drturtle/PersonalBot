@@ -94,7 +94,7 @@ class Tracker(commands.Cog):
         if not await self.redis.sismember(f'opted-{self.env}', str(msg.author.id)):
             return None
 
-        if not msg.content.startswith('rpg'):
+        if not msg.content.lower().startswith('rpg'):
             return None
 
         cmd = msg.content.lower().lstrip('rpg ')
