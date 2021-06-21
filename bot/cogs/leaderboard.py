@@ -4,7 +4,8 @@ import typing
 import discord
 from discord.ext import commands, tasks
 
-from utils.embeds import DefaultEmbed
+from utils.embeds import DefaultEmbed, SuccessEmbed
+from utils.functions import is_yes
 
 log = logging.getLogger(__name__)
 
@@ -77,7 +78,7 @@ class Leaderboard(commands.Cog):
     @commands.cooldown(3, 10, commands.BucketType.user)
     async def leaderboards(self, ctx, top=5):
         """
-        Shows the leaderboards for hunts & epic events. Weekly leaderboards are reset Monday at 00:00 UTC.
+        Shows the leaderboards for hunts & epic events.
         `top` - How many people to show for each leaderboard, min 3, max 10, default 5
         """
 
@@ -87,22 +88,54 @@ class Leaderboard(commands.Cog):
         for lb in self.leaderboards:
             lb_name = lb.replace('_', ' ').title()
 
-            lb = '\n'.join(
-                [f'{i+1}. '  # leaderboard position
-                 f'{list(data.keys())[0]} - {list(data.values())[0]}'  # name & # of events
-                 for i, data in enumerate(self.leaderboards[lb][:top+1])]
-            ) or 'No records found.'
+            lb_data = []
 
-            lb = f'```\n{lb}\n```'
+            for index, data in enumerate(self.leaderboards[lb][:top+1][::-1]):
+                name, hunts = tuple(data.items())[0]
+                type_ = ('hunt' if 'hunt' in lb else 'event') + ('s' if hunts != 1 else '')
+
+                lb_str = f'**#{index+1}.** {name} - {hunts} {type_}'
+                lb_data.append(lb_str)
+
+            lb_data = '\n'.join(lb_data) or 'No data found.'
 
             embed.add_field(
                 name=lb_name,
-                value=lb
+                value=lb_data
             )
             if len(embed.fields) == 2:
                 embed.add_field(name='\u200b', value='\u200b', inline=False)
 
         return await ctx.send(embed=embed)
+
+    @commands.command(name='resetlb')
+    @commands.check_any(commands.is_owner(), commands.has_role('Admin'))
+    async def leaderboards_reset(self, ctx):
+        """Resets the weekly leaderboards"""
+
+        await ctx.send('Are you **sure** you want to clear weekly data? This action is **irrevocable** and will result'
+                       ' in all weekly leaderboard data being deleted.\n(Respond yes/no)')
+
+        def check(msg):
+            return is_yes(msg.content)\
+                   and msg.channel.id == ctx.channel.id and \
+                   ctx.author.id == msg.author.id
+
+        try:
+            await self.bot.wait_for('message', check=check, timeout=20)
+        except TimeoutError:
+            return await ctx.send('Operation cancelled, data has not been deleted..', delete_after=10)
+
+        await self.redis.delete(f'redis-leaderboard-weekly-{self.env}')
+        self.leaderboards['hunt_weekly'] = []
+        self.leaderboards['epic_weekly'] = []
+        await self.redis.delete(f'redis-epic-leaderboard-weekly-{self.env}')
+
+        return await ctx.send(
+            embed=SuccessEmbed(
+                ctx, title='Data Deleted.', description='Weekly leaderboard data has been reset.'
+            )
+        )
 
 
 def setup(bot):

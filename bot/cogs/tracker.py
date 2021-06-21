@@ -183,11 +183,11 @@ class Tracker(commands.Cog):
     @commands.group(name='stats', invoke_without_command=True)
     @commands.cooldown(3, 15, commands.BucketType.user)
     @commands.guild_only()
-    async def tracked_stats(self, ctx, who: typing.Optional[MemberOrId] = None, hours: typing.Optional[int] = 24):
+    async def tracked_stats(self, ctx, who: typing.Optional[MemberOrId] = None, hours: typing.Optional[int] = 12):
         """
         Shows your tracked hunts!
 
-        `hours` - Amount of hours to show in the Last X hours field. (min 1, max 48).
+        `hours` - Amount of hours to show in the Last X hours field. (min 1, max 48, default 12).
         `who`- Who to look up the hunts of. If not specified, defaults to yourself
         """
 
@@ -271,8 +271,12 @@ class Tracker(commands.Cog):
     @tracked_stats.command(name='epic')
     @commands.cooldown(3, 15, commands.BucketType.user)
     @commands.guild_only()
-    async def tracked_epic(self, ctx, who: typing.Optional[MemberOrId] = None, hours: typing.Optional[int] = 24):
-        """See how many tracked epic events you have"""
+    async def tracked_epic(self, ctx, who: typing.Optional[MemberOrId] = None, hours: typing.Optional[int] = 12):
+        """See how many tracked epic events you have
+
+        `hours` - Amount of hours to show in the Last X hours field. (min 1, max 48, default 12).
+        `who`- Who to look up the events of. If not specified, defaults to yourself
+        """
         who = who or ctx.author
         if not await self.redis.sismember(f'opted-{self.env}', str(who.id)):
             if who.id == ctx.author.id:
