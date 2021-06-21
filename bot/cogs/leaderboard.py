@@ -90,7 +90,7 @@ class Leaderboard(commands.Cog):
 
             lb_data = []
 
-            for index, data in enumerate(self.leaderboards[lb][:top+1][::-1]):
+            for index, data in enumerate(self.leaderboards[lb][:top][::-1]):
                 name, hunts = tuple(data.items())[0]
                 type_ = ('hunt' if 'hunt' in lb else 'event') + ('s' if hunts != 1 else '')
 
