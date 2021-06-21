@@ -48,6 +48,16 @@ class Tracker(commands.Cog):
         self.redis = self.bot.redis_db
         self.env = self.bot.config.ENVIRONMENT
 
+    async def update_lb(self, lb_id, author, guild, count=1):
+        member = f'{guild.id}-{author.id}'
+
+        await self.redis.zadd(
+            lb_id,
+            count,
+            member,
+            incr=True
+        )
+
     async def cog_check(self, ctx):
         return getattr(ctx.guild, 'id', 0) in self.bot.whitelist
 
@@ -136,7 +146,13 @@ class Tracker(commands.Cog):
 
                 values[time_stamp] = ujson.dumps(time_values)
 
+                # update tracked stats
                 await self.redis.hmset_dict(str_id, values)
+                # increment leaderboard
+                leaderboard_id_total = f'redis-leaderboard-{self.env}'
+                await self.update_lb(leaderboard_id_total, msg.author, msg.guild)
+                leaderboard_id_weekly = f'redis-leaderboard-weekly-{self.env}'
+                await self.update_lb(leaderboard_id_weekly, msg.author, msg.guild)
 
             elif in_epic:
                 def check(m):
@@ -157,6 +173,12 @@ class Tracker(commands.Cog):
                 values[time_stamp] = ujson.dumps(time_values)
 
                 await self.redis.hmset_dict(str_id, values)
+                # increment leaderboard
+                leaderboard_id_total = f'redis-epic-leaderboard-{self.env}'
+                leaderboard_id_weekly = f'redis-epic-leaderboard-weekly-{self.env}'
+
+                await self.update_lb(leaderboard_id_total, msg.author, msg.guild)
+                await self.update_lb(leaderboard_id_weekly, msg.author, msg.guild)
 
     @commands.group(name='stats', invoke_without_command=True)
     @commands.cooldown(3, 15, commands.BucketType.user)

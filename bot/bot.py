@@ -2,10 +2,10 @@ import asyncio
 import logging
 import sys
 
-import motor.motor_asyncio
 import aioredis
-import pendulum
 import discord
+import motor.motor_asyncio
+import pendulum
 from discord.ext import commands
 
 from config import Config
@@ -108,13 +108,14 @@ async def on_ready():
     )
 
 
-COGS = {'jishaku', 'cogs.error_handler', 'cogs.info', 'cogs.tracker'}
+COGS = {'jishaku', 'cogs.error_handler', 'cogs.info', 'cogs.tracker', 'cogs.leaderboard'}
 
 for cog in COGS:
     try:
         bot.load_extension(cog)
     except Exception as e:
-        log.error(f'Error loading cog {cog}: {str(e)}')
+        raise e
+        # log.error(f'Error loading cog {cog}: {str(e)}')
 
 if __name__ == '__main__':
     bot.run(config.TOKEN)
