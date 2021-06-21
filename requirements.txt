@@ -13,4 +13,6 @@ sentry-sdk
 psutil
 jishaku
 
+ujson # faster json
+
 pendulum # time

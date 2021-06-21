@@ -1,19 +1,17 @@
-import json
 import logging
-
-import discord
-import pendulum
-import pymongo.errors
-from discord.ext import commands
+import typing
+from asyncio import TimeoutError
 from collections import OrderedDict
 from operator import itemgetter
-from utils.functions import is_yes
-from asyncio import TimeoutError
+
+import pendulum
+import pymongo.errors
+import ujson
+from discord.ext import commands
+
 from utils.converters import MemberOrId
-
 from utils.embeds import *
-
-import typing
+from utils.functions import is_yes
 
 log = logging.getLogger(__name__)
 
@@ -117,7 +115,7 @@ class Tracker(commands.Cog):
         if (in_tracked := cmd in TRACKED_COMMANDS) or (in_epic := epic_cmd in EPIC_EVENTS):
             values = await self.redis.hgetall(str_id, encoding='utf-8')
 
-            time_values = json.loads(values.get(time_stamp, '{}'))
+            time_values = ujson.loads(values.get(time_stamp, '{}'))
 
             if in_tracked:
 
@@ -136,9 +134,9 @@ class Tracker(commands.Cog):
                     {cmd_id: time_values.get(cmd_id, 0) + 1}
                 )
 
-                values[time_stamp] = json.dumps(time_values)
+                values[time_stamp] = ujson.dumps(time_values)
 
-                return await self.redis.hmset_dict(str_id, values)
+                await self.redis.hmset_dict(str_id, values)
 
             elif in_epic:
                 def check(m):
@@ -156,9 +154,9 @@ class Tracker(commands.Cog):
                     cmd_id: time_values.get(cmd_id, 0) + 1
                 })
 
-                values[time_stamp] = json.dumps(time_values)
+                values[time_stamp] = ujson.dumps(time_values)
 
-                return await self.redis.hmset_dict(str_id, values)
+                await self.redis.hmset_dict(str_id, values)
 
     @commands.group(name='stats', invoke_without_command=True)
     @commands.cooldown(3, 15, commands.BucketType.user)
@@ -186,7 +184,7 @@ class Tracker(commands.Cog):
                 )
 
         content = await self.redis.hgetall(f'redis-tracked-{self.env}-{ctx.guild.id}:{str(who.id)}', encoding='utf-8')
-        out = {k: json.loads(v) for k, v in content.items()}
+        out = {k: ujson.loads(v) for k, v in content.items()}
 
         now = pendulum.now(tz=pendulum.tz.UTC)
 
@@ -264,7 +262,7 @@ class Tracker(commands.Cog):
                                                                         f' tracking.')
             )
         content = await self.redis.hgetall(f'redis-tracked-{self.env}-{ctx.guild.id}:{str(who.id)}', encoding='utf-8')
-        out = {k: json.loads(v) for k, v in content.items()}
+        out = {k: ujson.loads(v) for k, v in content.items()}
 
         total_epic = {'total': {}, 'last_x': {}}
 
