@@ -77,7 +77,7 @@ class Leaderboard(commands.Cog):
     @commands.cooldown(3, 10, commands.BucketType.user)
     async def leaderboards(self, ctx, top=5):
         """
-        Shows the leaderboards for
+        Shows the leaderboards for hunts & epic events. Weekly leaderboards are reset Monday at 00:00 UTC.
         `top` - How many people to show for each leaderboard, min 3, max 10, default 5
         """
 
