@@ -59,6 +59,9 @@ class Leaderboard(commands.Cog):
 
         log.debug('updating leaderboard')
 
+        for lb in self.leaderboards:
+            self.leaderboards[lb] = []
+
         # hunt leaderboard, total
         await self.get_top_ten('hunt_total', f'redis-leaderboard-{self.env}')
         # hunt leaderboard, weekly
