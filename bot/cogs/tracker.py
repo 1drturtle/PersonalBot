@@ -51,11 +51,10 @@ class Tracker(commands.Cog):
     async def update_lb(self, lb_id, author, guild, count=1):
         member = f'{guild.id}-{author.id}'
 
-        await self.redis.zadd(
+        await self.redis.zincrby(
             lb_id,
             count,
-            member,
-            incr=True
+            member
         )
 
     async def cog_check(self, ctx):
