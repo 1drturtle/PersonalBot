@@ -131,10 +131,10 @@ class Tracker(commands.Cog):
                 def check(m):
                     if '**Your Horse**'.lower() in m.content.lower():
                         return False
-                    elif f'**{msg.author.name}** lost'.lower() in m.content.lower():
+                    elif f'**{msg.author.name}** lost but'.lower() in m.content.lower():
                         return False
                     return m.channel.id == msg.channel.id and m.author.id == 555955826880413696 and \
-                           len(m.embeds) == 0 and f'**{msg.author.name.lower()}** found' in m.content.lower()
+                           len(m.embeds) == 0 and msg.author.name.lower() in m.content.lower()
 
                 try:
                     await self.bot.wait_for('message', check=check, timeout=3)
