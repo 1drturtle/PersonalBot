@@ -31,7 +31,7 @@ class Leaderboard(commands.Cog):
 
     async def get_top_ten(self, lb_type: str, key: str):
         data: typing.List[typing.Tuple[str, int]] = await self.redis.zrevrange(
-            key, start=1, stop=10, withscores=True, encoding='utf-8'
+            key, start=0, stop=10, withscores=True, encoding='utf-8'
         )
 
         leaderboard: typing.List[typing.Dict[str, int]] = []
