@@ -114,7 +114,7 @@ class Leaderboard(commands.Cog):
     @commands.command(name='resetlb')
     @commands.check_any(commands.is_owner(), commands.has_role('Admin'))
     async def leaderboards_reset(self, ctx):
-        """Resets the weekly leaderboards"""
+        """Resets the weekly leaderboards. Requires the Admin role."""
 
         await ctx.send('Are you **sure** you want to clear weekly data? This action is **irrevocable** and will result'
                        ' in all weekly leaderboard data being deleted.\n(Respond yes/no)')
