@@ -57,6 +57,14 @@ class Tracker(commands.Cog):
             member
         )
 
+    async def get_leaderboard_positions(self, guild_id, member_id) -> tuple:
+        u_id = f'{guild_id}-{member_id}'
+        hunt_total = self.redis.zrank(f'redis-leaderboard-{self.env}', u_id)
+        hunt_weekly = self.redis.zrank(f'redis-leaderboard-weekly-{self.env}', u_id)
+        epic_total = self.redis.zrank(f'redis-epic-leaderboard-{self.env}', u_id)
+        epic_weekly = self.redis.zrank(f'redis-epic-leaderboard-weekly-{self.env}', u_id)
+        return hunt_total, hunt_weekly, epic_total, epic_weekly
+
     async def cog_check(self, ctx):
         return getattr(ctx.guild, 'id', 0) in self.bot.whitelist
 
@@ -266,6 +274,18 @@ class Tracker(commands.Cog):
                     value='\n'.join([f'**{x.title()}:** {y}'
                                      for x, y in total_hunts[x]['last_x'].items()]) or 'No hunts found.'
                 )
+
+        # leaderboard
+        leaderboard_stats = await self.get_leaderboard_positions(ctx.guild.id, ctx.author.id)
+        lb_names = ['Hunts (total)', 'Hunts (weekly)', 'Epic Events (total)', 'Epic Events (weekly)']
+        lb_out = []
+        for i, lb_c in enumerate(leaderboard_stats):
+            if lb_c is not None:
+                lb_out.append(f'**{lb_names[i]}:** #{lb_c}')
+
+        if lb_out:
+            embed.add_field(name='\u200b', value='\u200b', inline=False)
+            embed.add_field(name='Leaderboard Positions', value='\n'.join(lb_out))
 
         embed.set_footer(text=embed.footer.text + ' | Use tb!optin to sign-up', icon_url=embed.footer.icon_url)
 
