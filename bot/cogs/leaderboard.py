@@ -141,9 +141,17 @@ class Leaderboard(commands.Cog):
         )
 
     @commands.command(name='updatelb', hidden=True)
-    @commands.is_owner()
+    @commands.check_any(commands.is_owner(), commands.has_role('Admin'))
     async def updatelb(self, ctx):
         await self.update_leaderboard.__call__()
+        return await ctx.send(
+            embed=SuccessEmbed(
+                ctx,
+                title='Leaderboard Updated!',
+                description='The leaderboard has been manually updated to include the latest stats. Please wait five'
+                            'seconds to ensure the update goes through fully.'
+            )
+        )
 
 
 def setup(bot):
