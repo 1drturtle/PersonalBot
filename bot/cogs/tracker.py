@@ -60,12 +60,12 @@ class Tracker(commands.Cog):
     async def get_leaderboard_positions(self, guild_id, member_id, epic=False) -> tuple:
         u_id = f'{guild_id}-{member_id}'
         if not epic:
-            hunt_total = await self.redis.zrank(f'redis-leaderboard-{self.env}', u_id)
-            hunt_weekly = await self.redis.zrank(f'redis-leaderboard-weekly-{self.env}', u_id)
+            hunt_total = await self.redis.zrevrank(f'redis-leaderboard-{self.env}', u_id)
+            hunt_weekly = await self.redis.zrevrank(f'redis-leaderboard-weekly-{self.env}', u_id)
             return hunt_total, hunt_weekly
 
-        epic_total = await self.redis.zrank(f'redis-epic-leaderboard-{self.env}', u_id)
-        epic_weekly = await self.redis.zrank(f'redis-epic-leaderboard-weekly-{self.env}', u_id)
+        epic_total = await self.redis.zrevrank(f'redis-epic-leaderboard-{self.env}', u_id)
+        epic_weekly = await self.redis.zrevrank(f'redis-epic-leaderboard-weekly-{self.env}', u_id)
         return epic_total, epic_weekly
 
     async def cog_check(self, ctx):
@@ -279,7 +279,7 @@ class Tracker(commands.Cog):
                 )
 
         # leaderboard
-        leaderboard_stats = await self.get_leaderboard_positions(ctx.guild.id, ctx.author.id)
+        leaderboard_stats = await self.get_leaderboard_positions(ctx.guild.id, who.id)
         lb_names = ['Hunts (total)', 'Hunts (weekly)', 'Epic Events (total)', 'Epic Events (weekly)']
         lb_out = []
         for i, lb_c in enumerate(leaderboard_stats):
@@ -362,7 +362,7 @@ class Tracker(commands.Cog):
             )
 
         # leaderboard
-        leaderboard_stats = await self.get_leaderboard_positions(ctx.guild.id, ctx.author.id, epic=True)
+        leaderboard_stats = await self.get_leaderboard_positions(ctx.guild.id, who.id, epic=True)
         lb_names = ['Epic Events (total)', 'Epic Events (weekly)']
         lb_out = []
         for i, lb_c in enumerate(leaderboard_stats):
