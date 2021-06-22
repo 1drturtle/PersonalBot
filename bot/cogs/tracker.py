@@ -57,13 +57,16 @@ class Tracker(commands.Cog):
             member
         )
 
-    async def get_leaderboard_positions(self, guild_id, member_id) -> tuple:
+    async def get_leaderboard_positions(self, guild_id, member_id, epic=False) -> tuple:
         u_id = f'{guild_id}-{member_id}'
-        hunt_total = self.redis.zrank(f'redis-leaderboard-{self.env}', u_id)
-        hunt_weekly = self.redis.zrank(f'redis-leaderboard-weekly-{self.env}', u_id)
-        epic_total = self.redis.zrank(f'redis-epic-leaderboard-{self.env}', u_id)
-        epic_weekly = self.redis.zrank(f'redis-epic-leaderboard-weekly-{self.env}', u_id)
-        return hunt_total, hunt_weekly, epic_total, epic_weekly
+        if not epic:
+            hunt_total = await self.redis.zrank(f'redis-leaderboard-{self.env}', u_id)
+            hunt_weekly = await self.redis.zrank(f'redis-leaderboard-weekly-{self.env}', u_id)
+            return hunt_total, hunt_weekly
+
+        epic_total = await self.redis.zrank(f'redis-epic-leaderboard-{self.env}', u_id)
+        epic_weekly = await self.redis.zrank(f'redis-epic-leaderboard-weekly-{self.env}', u_id)
+        return epic_total, epic_weekly
 
     async def cog_check(self, ctx):
         return getattr(ctx.guild, 'id', 0) in self.bot.whitelist
@@ -281,7 +284,7 @@ class Tracker(commands.Cog):
         lb_out = []
         for i, lb_c in enumerate(leaderboard_stats):
             if lb_c is not None:
-                lb_out.append(f'**{lb_names[i]}:** #{lb_c}')
+                lb_out.append(f'**{lb_names[i]}:** #{lb_c+1}')
 
         if lb_out:
             embed.add_field(name='\u200b', value='\u200b', inline=False)
@@ -357,6 +360,18 @@ class Tracker(commands.Cog):
                 value='\n'.join([f'**{x.title()}:** {y}'
                                  for x, y in total_epic['last_x'].items()]) or 'No hunts found.'
             )
+
+        # leaderboard
+        leaderboard_stats = await self.get_leaderboard_positions(ctx.guild.id, ctx.author.id, epic=True)
+        lb_names = ['Epic Events (total)', 'Epic Events (weekly)']
+        lb_out = []
+        for i, lb_c in enumerate(leaderboard_stats):
+            if lb_c is not None:
+                lb_out.append(f'**{lb_names[i]}:** #{lb_c+1}')
+
+        if lb_out:
+            embed.add_field(name='\u200b', value='\u200b', inline=False)
+            embed.add_field(name='Epic Leaderboard Positions', value='\n'.join(lb_out))
 
         embed.description = f'Epic Event stats for {who.name}#{who.discriminator}. If there is nothing here, I have' \
                             f' no tracked epic events.'
