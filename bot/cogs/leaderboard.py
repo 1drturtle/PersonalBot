@@ -137,6 +137,11 @@ class Leaderboard(commands.Cog):
             )
         )
 
+    @commands.command(name='updatelb', hidden=True)
+    @commands.is_owner()
+    async def updatelb(self, ctx):
+        await self.update_leaderboard.__call__()
+
 
 def setup(bot):
     bot.add_cog(Leaderboard(bot))
