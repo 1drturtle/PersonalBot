@@ -15,3 +15,4 @@ jishaku
 
 ujson # faster json
 pendulum # time
+aiocron # schedule

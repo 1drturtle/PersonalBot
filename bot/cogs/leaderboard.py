@@ -1,11 +1,14 @@
 import logging
 import typing
+from datetime import timezone
 
 import discord
 from discord.ext import commands, tasks
 
 from utils.embeds import DefaultEmbed, SuccessEmbed
 from utils.functions import is_yes
+
+import aiocron
 
 log = logging.getLogger(__name__)
 
@@ -22,6 +25,7 @@ class Leaderboard(commands.Cog):
             'epic_weekly': []
         }
         self.env = self.bot.config.ENVIRONMENT
+        self.reset_cron = aiocron.crontab('00 00 * * MON', func=self.reset_weekly, tz=timezone.utc)
 
     async def cog_check(self, ctx):
         return getattr(ctx.guild, 'id', 0) in self.bot.whitelist
@@ -152,6 +156,16 @@ class Leaderboard(commands.Cog):
                             'seconds to ensure the update goes through fully.'
             )
         )
+
+    async def reset_weekly(self):
+        log.info(f'Weekly Leaderboard Reset Triggered...')
+
+        await self.redis.delete(f'redis-leaderboard-weekly-{self.env}')
+        await self.redis.delete(f'redis-epic-leaderboard-weekly-{self.env}')
+
+        await self.update_leaderboard.__call__()
+
+        log.info(f'Weekly Leaderboard Reset Complete.')
 
 
 def setup(bot):
