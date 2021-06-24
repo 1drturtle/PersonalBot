@@ -113,6 +113,8 @@ class Leaderboard(commands.Cog):
             if len(embed.fields) == 2:
                 embed.add_field(name='\u200b', value='\u200b', inline=False)
 
+        embed.description = 'Weekly leaderboards reset on Monday at 00:00 (UTC).'
+
         return await ctx.send(embed=embed)
 
     @commands.command(name='resetlb')
