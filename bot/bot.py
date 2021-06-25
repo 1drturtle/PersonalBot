@@ -93,7 +93,8 @@ intents = discord.Intents(guilds=True, members=False, messages=True)
 
 description = 'Personal Bot developed by Dr Turtle#1771'
 
-bot = MyBot(desc=description, intents=intents, allowed_mentions=discord.AllowedMentions.none())
+bot = MyBot(desc=description, intents=intents, allowed_mentions=discord.AllowedMentions.none(),
+            case_insensitive=True)
 
 
 @bot.event
