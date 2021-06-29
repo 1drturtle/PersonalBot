@@ -234,6 +234,7 @@ class Tracker(commands.Cog):
         for timestamp, hunts in out.items():
             time = pendulum.from_format(timestamp, 'YYYY-MM_DD_HH', tz=pendulum.tz.UTC)
             diff = time.diff(now, False).in_hours()
+            log.debug(diff)
 
             for hunt_type, hunt_count in hunts.items():
                 h_type = 'together' if int(hunt_type) < 10 else 'individual' if int(hunt_type) < 100 else None
@@ -253,7 +254,7 @@ class Tracker(commands.Cog):
                                                                     total_hunts[h_type]['last_x'].get(full_hunt_type, 0)
 
         embed = MemberEmbed(ctx, who, title=f'Hunt Stats for {who.name}'
-            if who.id != ctx.author.id else 'Hunt Stats')
+        if who.id != ctx.author.id else 'Hunt Stats')
 
         embed.description = 'Here are the hunts stats. If there is nothing here, try hunting and checking again!'
 
@@ -284,7 +285,7 @@ class Tracker(commands.Cog):
         lb_out = []
         for i, lb_c in enumerate(leaderboard_stats):
             if lb_c is not None:
-                lb_out.append(f'**{lb_names[i]}:** #{lb_c+1}')
+                lb_out.append(f'**{lb_names[i]}:** #{lb_c + 1}')
 
         if lb_out:
             embed.add_field(name='\u200b', value='\u200b', inline=False)
@@ -337,7 +338,7 @@ class Tracker(commands.Cog):
                     total_epic['last_x'][full_event_type] = total_epic['last_x'].get(full_event_type, 0) + count
 
         embed = MemberEmbed(ctx, who, title=f'Epic Event Stats for {who.name}'
-            if who.id != ctx.author.id else 'Epic Event Stats')
+        if who.id != ctx.author.id else 'Epic Event Stats')
         embed.set_footer(text=embed.footer.text + ' | Use tb!optin to sign-up', icon_url=embed.footer.icon_url)
 
         if total_epic['total']:
@@ -367,7 +368,7 @@ class Tracker(commands.Cog):
         lb_out = []
         for i, lb_c in enumerate(leaderboard_stats):
             if lb_c is not None:
-                lb_out.append(f'**{lb_names[i]}:** #{lb_c+1}')
+                lb_out.append(f'**{lb_names[i]}:** #{lb_c + 1}')
 
         if lb_out:
             embed.add_field(name='\u200b', value='\u200b', inline=False)
@@ -410,6 +411,40 @@ class Tracker(commands.Cog):
         embed.description = 'WIP'
 
         return await ctx.send(embed=embed)
+
+    @tracked_stats.command(name='overwrite', hidden=True)
+    @commands.is_owner()
+    async def owner_overwrite(self, ctx, who: MemberOrId, time: str, event_type: int, amount: int):
+        """
+        Overwrite the amount of hunts or epic events (`event_type`) for `who` at `time` to be `amount`
+        """
+        user_id = f'redis-tracked-{self.env}-{ctx.guild.id}:{who.id}'
+        user_data = await self.redis.hgetall(user_id, encoding='utf-8')
+        try:
+            pendulum.from_format(time, 'YYYY-MM_DD_HH', tz=pendulum.tz.UTC)
+        except ValueError:
+            raise commands.BadArgument('Invalid time string provided.')
+
+        timed_data = ujson.loads(user_data.get(time, '{}'))
+        timed_data.update(
+            {str(event_type): amount}
+        )
+
+        user_data.update({time: ujson.dumps(timed_data)})
+        await self.redis.hmset_dict(user_id, user_data)
+
+        return await ctx.send(
+            embed=SuccessEmbed(ctx,
+                               title='Stats Updated',
+                               description=f'The stats for {who.name} at `{time}` for event-type '
+                                           f'`{event_type}` has been set to `{amount}`.'
+                               )
+        )
+
+    @tracked_stats.command(name='lbadd', hidden=True)
+    @commands.is_owner()
+    async def owner_lb_add(self, ctx, who: MemberOrId, type_: str, amount: int):
+        raise NotImplemented('Work in Progress!')
 
 
 def setup(bot):
