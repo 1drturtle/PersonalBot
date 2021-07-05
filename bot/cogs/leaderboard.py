@@ -33,6 +33,7 @@ class Leaderboard(commands.Cog):
 
     def cog_unload(self):
         self.update_leaderboard.cancel()
+        self.reset_cron.stop()
 
     async def get_top_ten(self, lb_type: str, key: str):
         data: typing.List[typing.Tuple[str, int]] = await self.redis.zrevrange(
@@ -82,7 +83,17 @@ class Leaderboard(commands.Cog):
     async def leaderboard_wait_bot_ready(self):
         await self.bot.wait_until_ready()
 
-    @commands.command(name='leaderboard', aliases=['top', 'lb'])
+    async def reset_weekly(self):
+        log.info(f'Weekly Leaderboard Reset Triggered...')
+
+        await self.redis.delete(f'redis-leaderboard-weekly-{self.env}')
+        await self.redis.delete(f'redis-epic-leaderboard-weekly-{self.env}')
+
+        await self.update_leaderboard.__call__()
+
+        log.info(f'Weekly Leaderboard Reset Complete.')
+
+    @commands.group(name='leaderboard', aliases=['top', 'lb'], invoke_without_command=True)
     @commands.cooldown(3, 10, commands.BucketType.user)
     async def leaderboards(self, ctx, top=5):
         """
@@ -120,7 +131,7 @@ class Leaderboard(commands.Cog):
 
         return await ctx.send(embed=embed)
 
-    @commands.command(name='resetlb')
+    @leaderboards.command(name='reset', hidden=True)
     @commands.check_any(commands.is_owner(), commands.has_role('Admin'))
     async def leaderboards_reset(self, ctx):
         """Resets the weekly leaderboards. Requires the Admin role."""
@@ -138,10 +149,7 @@ class Leaderboard(commands.Cog):
         except TimeoutError:
             return await ctx.send('Operation cancelled, data has not been deleted..', delete_after=10)
 
-        await self.redis.delete(f'redis-leaderboard-weekly-{self.env}')
-        self.leaderboards['hunt_weekly'] = []
-        self.leaderboards['epic_weekly'] = []
-        await self.redis.delete(f'redis-epic-leaderboard-weekly-{self.env}')
+        await self.reset_weekly()
 
         return await ctx.send(
             embed=SuccessEmbed(
@@ -149,7 +157,7 @@ class Leaderboard(commands.Cog):
             )
         )
 
-    @commands.command(name='updatelb', hidden=True)
+    @leaderboards.command(name='update', hidden=True)
     @commands.check_any(commands.is_owner(), commands.has_role('Admin'))
     async def updatelb(self, ctx):
         await self.update_leaderboard.__call__()
@@ -161,16 +169,6 @@ class Leaderboard(commands.Cog):
                             'seconds to ensure the update goes through fully.'
             )
         )
-
-    async def reset_weekly(self):
-        log.info(f'Weekly Leaderboard Reset Triggered...')
-
-        await self.redis.delete(f'redis-leaderboard-weekly-{self.env}')
-        await self.redis.delete(f'redis-epic-leaderboard-weekly-{self.env}')
-
-        await self.update_leaderboard.__call__()
-
-        log.info(f'Weekly Leaderboard Reset Complete.')
 
 
 def setup(bot):

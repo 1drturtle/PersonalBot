@@ -261,7 +261,7 @@ class Tracker(commands.Cog):
         total_hunts = await self.load_hunts(who, hours)
 
         embed = MemberEmbed(ctx, who, title=f'Hunt Stats for {who.name}'
-        if who.id != ctx.author.id else 'Hunt Stats')
+                                                if who.id != ctx.author.id else 'Hunt Stats')
 
         embed.description = 'Here are the hunts stats. If there is nothing here, try hunting and checking again!'
 
