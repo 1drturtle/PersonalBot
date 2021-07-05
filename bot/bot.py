@@ -40,7 +40,7 @@ class MyBot(commands.Bot):
         self.mdb = self.mongo_client[config.MONGO_DB]
 
         self.redis_db: aioredis.ConnectionsPool = self.loop.run_until_complete(
-            aioredis.create_redis_pool('redis://redis:6379')
+            aioredis.create_redis_pool(config.REDIS_URL, password=config.REDIS_PASS, encoding='utf-8')
         )
 
         self.default_prefix = config.PREFIX
