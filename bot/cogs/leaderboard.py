@@ -3,6 +3,7 @@ import typing
 from datetime import timezone
 
 import discord
+import pendulum
 from discord.ext import commands, tasks
 
 from utils.embeds import DefaultEmbed, SuccessEmbed
@@ -114,6 +115,8 @@ class Leaderboard(commands.Cog):
                 embed.add_field(name='\u200b', value='\u200b', inline=False)
 
         embed.description = 'Weekly leaderboards reset on Monday at 00:00 (UTC).'
+        next_reset = pendulum.now(tz=pendulum.UTC).next(pendulum.MONDAY)
+        embed.description += f'\nNext reset: <t:{next_reset.int_timestamp}:R>'
 
         return await ctx.send(embed=embed)
 

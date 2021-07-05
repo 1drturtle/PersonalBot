@@ -4,6 +4,7 @@ from asyncio import TimeoutError
 from collections import OrderedDict
 from operator import itemgetter
 
+import discord
 import pendulum
 import pymongo.errors
 import ujson
@@ -67,6 +68,45 @@ class Tracker(commands.Cog):
         epic_total = await self.redis.zrevrank(f'redis-epic-leaderboard-{self.env}', u_id)
         epic_weekly = await self.redis.zrevrank(f'redis-epic-leaderboard-weekly-{self.env}', u_id)
         return epic_total, epic_weekly
+
+    async def load_hunts(self, who: discord.Member, hours: int = 12):
+        """Load hunts from redis database and parse into dictionary"""
+        content = await self.redis.hgetall(f'redis-tracked-{self.env}-{who.guild.id}:{str(who.id)}', encoding='utf-8')
+        out = {k: ujson.loads(v) for k, v in content.items()}
+
+        now = pendulum.now(tz=pendulum.tz.UTC)
+
+        total_hunts = {
+            'together': {'total': {}, 'last_x': {}},
+            'individual': {'total': {}, 'last_x': {}},
+            'epic': {'total': {}, 'last_x': {}}
+        }
+
+        hours = min(max(hours, 1), 48)
+
+        for timestamp, hunts in out.items():
+            time = pendulum.from_format(timestamp, 'YYYY-MM_DD_HH', tz=pendulum.tz.UTC)
+            diff = time.diff(now, False).in_hours()
+
+            for hunt_type, hunt_count in hunts.items():
+                h_type = 'together' if int(hunt_type) < 10 else 'individual' if int(hunt_type) < 100 else 'epic' \
+                    if int(hunt_type) < 200 else None
+                if h_type is None:
+                    continue
+
+                hunt_index = list(TRACKED_COMMANDS.values()).index(int(hunt_type))
+                full_hunt_type = list(TRACKED_COMMANDS.keys())[hunt_index]
+
+                total_hunts[h_type]['total']['total'] = hunt_count + total_hunts[h_type]['total'].get('total', 0)
+                total_hunts[h_type]['total'][full_hunt_type] = hunt_count + \
+                                                               total_hunts[h_type]['total'].get(full_hunt_type, 0)
+
+                if diff <= hours:
+                    total_hunts[h_type]['last_x']['total'] = hunt_count + total_hunts[h_type]['last_x'].get('total', 0)
+                    total_hunts[h_type]['last_x'][full_hunt_type] = hunt_count + \
+                                                                    total_hunts[h_type]['last_x'].get(full_hunt_type, 0)
+
+        return total_hunts
 
     async def cog_check(self, ctx):
         return getattr(ctx.guild, 'id', 0) in self.bot.whitelist
@@ -218,40 +258,7 @@ class Tracker(commands.Cog):
                     embed=ErrorEmbed(ctx, title='Stats Error!', description=f'{who.name} has not signed up for hunt'
                                                                             f' tracking.')
                 )
-
-        content = await self.redis.hgetall(f'redis-tracked-{self.env}-{ctx.guild.id}:{str(who.id)}', encoding='utf-8')
-        out = {k: ujson.loads(v) for k, v in content.items()}
-
-        now = pendulum.now(tz=pendulum.tz.UTC)
-
-        total_hunts = {
-            'together': {'total': {}, 'last_x': {}},
-            'individual': {'total': {}, 'last_x': {}}
-        }
-
-        hours = min(max(hours, 1), 48)
-
-        for timestamp, hunts in out.items():
-            time = pendulum.from_format(timestamp, 'YYYY-MM_DD_HH', tz=pendulum.tz.UTC)
-            diff = time.diff(now, False).in_hours()
-            log.debug(diff)
-
-            for hunt_type, hunt_count in hunts.items():
-                h_type = 'together' if int(hunt_type) < 10 else 'individual' if int(hunt_type) < 100 else None
-                if h_type is None:
-                    continue
-
-                hunt_index = list(TRACKED_COMMANDS.values()).index(int(hunt_type))
-                full_hunt_type = list(TRACKED_COMMANDS.keys())[hunt_index]
-
-                total_hunts[h_type]['total']['total'] = hunt_count + total_hunts[h_type]['total'].get('total', 0)
-                total_hunts[h_type]['total'][full_hunt_type] = hunt_count + \
-                                                               total_hunts[h_type]['total'].get(full_hunt_type, 0)
-
-                if diff <= hours:
-                    total_hunts[h_type]['last_x']['total'] = hunt_count + total_hunts[h_type]['last_x'].get('total', 0)
-                    total_hunts[h_type]['last_x'][full_hunt_type] = hunt_count + \
-                                                                    total_hunts[h_type]['last_x'].get(full_hunt_type, 0)
+        total_hunts = await self.load_hunts(who, hours)
 
         embed = MemberEmbed(ctx, who, title=f'Hunt Stats for {who.name}'
         if who.id != ctx.author.id else 'Hunt Stats')
@@ -314,31 +321,12 @@ class Tracker(commands.Cog):
                 embed=ErrorEmbed(ctx, title='Stats Error!', description=f'{who.name} has not signed up for hunt'
                                                                         f' tracking.')
             )
-        content = await self.redis.hgetall(f'redis-tracked-{self.env}-{ctx.guild.id}:{str(who.id)}', encoding='utf-8')
-        out = {k: ujson.loads(v) for k, v in content.items()}
 
-        total_epic = {'total': {}, 'last_x': {}}
-
-        now = pendulum.now(tz=pendulum.tz.UTC)
-
-        hours = min(max(hours, 1), 48)
-
-        for timestamp, events in out.items():
-            time = pendulum.from_format(timestamp, 'YYYY-MM_DD_HH', tz=pendulum.tz.UTC)
-            diff = time.diff(now, False).in_hours()
-
-            for hunt_type, count in events.items():
-                if int(hunt_type) < 100:
-                    continue
-
-                full_event_type = next(name for name, details in EPIC_EVENTS.items() if int(hunt_type) == details['id'])
-
-                total_epic['total'][full_event_type] = total_epic['total'].get(full_event_type, 0) + count
-                if diff <= hours:
-                    total_epic['last_x'][full_event_type] = total_epic['last_x'].get(full_event_type, 0) + count
+        all_data = await self.load_hunts(who, hours)
+        total_epic = all_data['epic']
 
         embed = MemberEmbed(ctx, who, title=f'Epic Event Stats for {who.name}'
-        if who.id != ctx.author.id else 'Epic Event Stats')
+                                                                    if who.id != ctx.author.id else 'Epic Event Stats')
         embed.set_footer(text=embed.footer.text + ' | Use tb!optin to sign-up', icon_url=embed.footer.icon_url)
 
         if total_epic['total']:
