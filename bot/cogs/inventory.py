@@ -33,7 +33,8 @@ class Inventory(commands.Cog):
             '_id': who.id
         })
 
-        data.pop('_id')
+        if data:
+            data.pop('_id')
 
         return data or {}
 
