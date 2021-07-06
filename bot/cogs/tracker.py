@@ -94,8 +94,10 @@ class Tracker(commands.Cog):
                 if h_type is None:
                     continue
 
-                hunt_index = list(TRACKED_COMMANDS.values()).index(int(hunt_type))
-                full_hunt_type = list(TRACKED_COMMANDS.keys())[hunt_index]
+                type_list = TRACKED_COMMANDS if h_type != 'epic' else EPIC_EVENTS
+
+                hunt_index = list(type_list.values()).index(int(hunt_type))
+                full_hunt_type = list(type_list.keys())[hunt_index]
 
                 total_hunts[h_type]['total']['total'] = hunt_count + total_hunts[h_type]['total'].get('total', 0)
                 total_hunts[h_type]['total'][full_hunt_type] = hunt_count + \
