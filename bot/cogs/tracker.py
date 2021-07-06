@@ -94,7 +94,7 @@ class Tracker(commands.Cog):
                 if h_type is None:
                     continue
 
-                type_list = TRACKED_COMMANDS if h_type != 'epic' else EPIC_EVENTS
+                type_list = TRACKED_COMMANDS if h_type != 'epic' else {x: y['id'] for x, y in EPIC_EVENTS.items()}
 
                 hunt_index = list(type_list.values()).index(int(hunt_type))
                 full_hunt_type = list(type_list.keys())[hunt_index]
