@@ -36,7 +36,7 @@ TRACKED_COMMANDS = {
 
 EPIC_EVENTS = {
     'ultra bait': {'msg': 'Placing the ultra bait...', 'id': 101},
-    'epic seed': {'msg': 'Placing the epic seed...', 'id': 102},
+    'epic seed': {'msg': 'Planting the epic seed...', 'id': 102},
     'coin trumpet': {'msg': 'Summoning the coin rain...', 'id': 103}
 }
 
