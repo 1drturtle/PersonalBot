@@ -15,7 +15,7 @@ ITEM_ICONS = {
     '1000 server xp': ':star:'
 }
 ITEM_DESCRIPTIONS = {
-
+    '1000 server xp': 'Redeemable for 1,000 xp in Army Level (<@804896512051118121>)'
 }
 
 
@@ -77,6 +77,18 @@ class Inventory(commands.Cog):
             value='\n'.join(items) or 'No items found.'
         )
 
+        return await ctx.send(embed=embed)
+
+    @inv.command(name='items')
+    async def inv_itemlist(self, ctx):
+        """Shows a list of all items."""
+        embed = DefaultEmbed(ctx)
+        embed.title = 'Server Item List'
+        out = []
+        for item, desc in ITEM_DESCRIPTIONS.items():
+            out.append(f"{ITEM_ICONS.get(item) or ':question_mark:'} {item} - {desc}")
+
+        embed.description = '\n'.join(out)
         return await ctx.send(embed=embed)
 
     @inv.command(name='update')
