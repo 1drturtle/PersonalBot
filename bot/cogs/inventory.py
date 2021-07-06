@@ -4,6 +4,7 @@ from discord.ext import commands
 import discord
 
 from utils.embeds import DefaultEmbed
+from utils.converters import MemberOrId
 
 
 ITEM_ICONS = {
@@ -19,7 +20,7 @@ class Inventory(commands.Cog):
         self.bot = bot
         self.db = self.bot.mdb['inventory']
 
-    async def load_inventory(self, who: typing.Union[discord.Member, discord.User]) -> typing.Dict[str, int]:
+    async def load_inventory(self, who) -> typing.Dict[str, int]:
         """
         Loads the inventory for a specified user.
         :param who: Discord user to find the inventory for.
@@ -30,7 +31,14 @@ class Inventory(commands.Cog):
         })
         return data or {}
 
-    @commands.command(name='inventory')
+    async def save_inventory(self, who, inv: typing.Dict[str, int]):
+        await self.db.update_one(
+            {'_id': who.id},
+            {'$set': inv},
+            upsert=True
+        )
+
+    @commands.group(name='inventory', invoke_without_command=True)
     async def inv(self, ctx):
         """shows the user's inventory"""
         embed = DefaultEmbed(ctx,
@@ -47,6 +55,35 @@ class Inventory(commands.Cog):
         embed.add_field(
             name='Items',
             value='\n'.join(items)
+        )
+
+        return await ctx.send(embed=embed)
+
+    @inv.command(name='update')
+    @commands.is_owner()
+    async def inv_update(self, ctx, who: MemberOrId, *, update_str: str):
+        """Updates a user's inventory. Admin-only."""
+
+        embed = DefaultEmbed(ctx)
+
+        embed.title = f'Updating {who}\'s inventory'
+        embed.description = f'Action done by {ctx.author}'
+
+        inv = await self.load_inventory(who)
+
+        out: typing.List[str] = []
+        for combo in update_str.split(';'):
+            item, val = combo.split(',')
+            item, val = item.strip().lower(), int(val.strip())
+            inv[item] = val
+
+            out.append(f'Set {item} to {val}x')
+
+        await self.save_inventory(who, inv)
+
+        embed.add_field(
+            name='Updated Items',
+            value='\n'.join(out)
         )
 
         return await ctx.send(embed=embed)

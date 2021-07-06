@@ -1,9 +1,10 @@
 from discord.ext import commands
 import typing
+import discord
 
 
 class MemberOrId(commands.Converter):
-    async def convert(self, ctx, arg):
+    async def convert(self, ctx, arg) -> typing.Optional[discord.Member]:
 
         try:
             member = await commands.MemberConverter().convert(ctx, arg)
