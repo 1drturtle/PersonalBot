@@ -1,12 +1,11 @@
+import logging
 import typing
 
 from discord.ext import commands
-import discord
 
-import logging
-from utils.embeds import DefaultEmbed
+from utils.constants import RPG_ARMY_ICON
 from utils.converters import MemberOrId
-
+from utils.embeds import DefaultEmbed
 
 log = logging.getLogger(__name__)
 
@@ -89,6 +88,7 @@ class Inventory(commands.Cog):
             out.append(f"{ITEM_ICONS.get(item) or ':question_mark:'} {item} - {desc}")
 
         embed.description = '\n'.join(out)
+        embed.set_thumbnail(url=RPG_ARMY_ICON)
         return await ctx.send(embed=embed)
 
     @inv.command(name='update')

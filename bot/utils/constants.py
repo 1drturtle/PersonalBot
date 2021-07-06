@@ -1,0 +1,1 @@
+RPG_ARMY_ICON = 'https://cdn.discordapp.com/icons/713541415099170836/83b34dda4bedd3d37de2ee666ff526c3.webp?size=1024'
