@@ -3,12 +3,16 @@ import typing
 from discord.ext import commands
 import discord
 
+import logging
 from utils.embeds import DefaultEmbed
 from utils.converters import MemberOrId
 
 
-ITEM_ICONS = {
+log = logging.getLogger(__name__)
 
+
+ITEM_ICONS = {
+    '1000 server xp': ':star:'
 }
 ITEM_DESCRIPTIONS = {
 
@@ -35,11 +39,24 @@ class Inventory(commands.Cog):
         return data or {}
 
     async def save_inventory(self, who, inv: typing.Dict[str, int]):
+
+        # remove items that have 0 quantity
+        to_pop = {}
+        for j, k in inv.copy().items():
+            if k < 1:
+                to_pop[j] = 0
+
         await self.db.update_one(
             {'_id': who.id},
             {'$set': inv},
             upsert=True
         )
+
+        if to_pop:
+            await self.db.update_one(
+                {'_id': who.id},
+                {'$unset': to_pop}
+            )
 
     @commands.group(name='inventory', invoke_without_command=True, aliases=['inv', 'i'])
     async def inv(self, ctx):
@@ -64,8 +81,11 @@ class Inventory(commands.Cog):
 
     @inv.command(name='update')
     @commands.is_owner()
-    async def inv_update(self, ctx, who: MemberOrId, *, update_str: str):
+    async def inv_update(self, ctx, who: typing.Optional[MemberOrId], *, update_str: str):
         """Updates a user's inventory. Admin-only."""
+
+        if not who:
+            who = ctx.author
 
         embed = DefaultEmbed(ctx)
 
