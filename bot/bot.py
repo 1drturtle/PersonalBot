@@ -124,7 +124,7 @@ async def on_message(message):
         return await bot.invoke(context)
 
 
-COGS = {'jishaku', 'cogs.error_handler', 'cogs.info', 'cogs.tracker', 'cogs.leaderboard'}
+COGS = {'jishaku', 'cogs.error_handler', 'cogs.info', 'cogs.tracker', 'cogs.leaderboard', 'cogs.inventory'}
 
 for cog in COGS:
     try:
