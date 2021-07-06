@@ -14,19 +14,7 @@ config = Config()
 
 
 async def get_prefix(client, message):
-    if not message.guild:
-        return commands.when_mentioned_or(config.PREFIX)(client, message)
-    guild_id = str(message.guild.id)
-    if guild_id in client.prefixes:
-        prefix = client.prefixes.get(guild_id, config.PREFIX)
-    else:
-        dbsearch = await client.mdb['prefixes'].find_one({'guild_id': guild_id})
-        if dbsearch is not None:
-            prefix = dbsearch.get('prefix', config.PREFIX)
-        else:
-            prefix = config.PREFIX
-        client.prefixes[guild_id] = prefix
-    return commands.when_mentioned_or(prefix)(client, message)
+    return commands.when_mentioned_or(config.PREFIX)(client, message)
 
 
 class MyBot(commands.Bot):
