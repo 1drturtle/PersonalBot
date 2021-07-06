@@ -29,6 +29,9 @@ class Inventory(commands.Cog):
         data = await self.db.find_one({
             '_id': who.id
         })
+
+        data.pop('_id')
+
         return data or {}
 
     async def save_inventory(self, who, inv: typing.Dict[str, int]):
@@ -38,7 +41,7 @@ class Inventory(commands.Cog):
             upsert=True
         )
 
-    @commands.group(name='inventory', invoke_without_command=True)
+    @commands.group(name='inventory', invoke_without_command=True, aliases=['inv', 'i'])
     async def inv(self, ctx):
         """shows the user's inventory"""
         embed = DefaultEmbed(ctx,
@@ -54,7 +57,7 @@ class Inventory(commands.Cog):
             )
         embed.add_field(
             name='Items',
-            value='\n'.join(items)
+            value='\n'.join(items) or 'No items found.'
         )
 
         return await ctx.send(embed=embed)
