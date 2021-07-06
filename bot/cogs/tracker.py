@@ -423,11 +423,16 @@ class Tracker(commands.Cog):
         user_data.update({time: ujson.dumps(timed_data)})
         await self.redis.hmset_dict(user_id, user_data)
 
+        type_list = TRACKED_COMMANDS if event_type < 100 else {x: y['id'] for x, y in EPIC_EVENTS.items()}
+
+        event_index = list(type_list.values()).index(int(event_type))
+        event_name = list(type_list.keys())[event_index]
+
         return await ctx.send(
             embed=SuccessEmbed(ctx,
                                title='Stats Updated',
                                description=f'The stats for {who.name} at `{time}` for event-type '
-                                           f'`{event_type}` has been set to `{amount}`.'
+                                           f'`{event_type} ({event_name})` has been set to `{amount}`.'
                                )
         )
 
