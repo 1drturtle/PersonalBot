@@ -41,12 +41,26 @@ class Tracker(commands.Cog):
             member
         )
 
-    async def hunt_hook(self, author, guild):
+    async def hunt_hook(self, member, guild):
         """called on every hunt, used to assign roles for hunt counts"""
         weekly_score = await self.redis.zscore(
-            f'redis-leaderboard-weekly-{self.env}'
+            f'redis-leaderboard-weekly-{self.env}', f'{guild.id}-{member.id}'
         )
-        pass
+        
+        for score, role_name in ROLE_MILESTONES.items().__reversed__():
+            if weekly_score < score:
+                continue
+
+            for bad_score, bad_role_name in ROLE_MILESTONES.items():
+                if bad_score >= score:
+                    continue
+                if role := discord.utils.find(lambda r: r.name == bad_role_name, member.roles):
+                    await member.remove_roles(role, reason='Member no longer qualifies for this role.')
+
+            big_role = discord.utils.find(lambda r: r.name == role_name, guild.roles)
+            await member.add_roles(big_role, reason='Member qualified for role due to hunt counts.')
+
+            break
 
     async def epic_hook(self, author, guild):
         """called on every epic event, used to assign roles for epic events"""

@@ -18,7 +18,7 @@ async def get_prefix(client, message):
 
 
 class MyBot(commands.Bot):
-    def __init__(self, command_prefix=get_prefix, desc: str = '', **options):
+    def __init__(self, desc: str = '', **options):
         self.launch_time = pendulum.now(tz=pendulum.tz.UTC)
         self.loop = asyncio.get_event_loop()
 
@@ -43,7 +43,7 @@ class MyBot(commands.Bot):
             self.startup()
         )
 
-        super(MyBot, self).__init__(command_prefix, description=desc, **options)
+        super(MyBot, self).__init__(description=desc, **options)
 
     @property
     def uptime(self):
@@ -81,7 +81,8 @@ intents = discord.Intents(guilds=True, members=False, messages=True)
 
 description = 'Personal Bot developed by Dr Turtle#1771'
 
-bot = MyBot(desc=description, intents=intents, allowed_mentions=discord.AllowedMentions.none())
+bot = MyBot(desc=description, intents=intents, allowed_mentions=discord.AllowedMentions.none(),
+            command_prefix=commands.when_mentioned_or(config.PREFIX))
 
 
 @bot.event
