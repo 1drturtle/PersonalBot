@@ -7,6 +7,7 @@ import pendulum
 from discord.ext import commands, tasks
 
 from utils.embeds import DefaultEmbed, SuccessEmbed
+from utils.constants import ROLE_MILESTONES
 from utils.functions import is_yes
 
 import aiocron
@@ -92,6 +93,20 @@ class Leaderboard(commands.Cog):
         await self.update_leaderboard.__call__()
 
         log.info(f'Weekly Leaderboard Reset Complete.')
+        # remove weekly roles
+        guild = self.bot.get_guild(self.bot.config.GUILD_ID)
+        if not guild:
+            return
+
+        for role_name in ROLE_MILESTONES.values():
+            role = discord.utils.find(lambda r: r.name == role_name, guild.roles)
+
+            for member in role.members:
+                try:
+                    await member.remove_roles(role, reason='Weekly leaderboard reset - removing roles.')
+                except:
+                    log.error(f'Could not remove role {role_name} from {member}')
+        log.info('All roles removed.')
 
     @commands.group(name='leaderboard', aliases=['top', 'lb'], invoke_without_command=True)
     @commands.cooldown(3, 10, commands.BucketType.user)

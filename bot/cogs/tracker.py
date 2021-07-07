@@ -9,17 +9,12 @@ import pymongo.errors
 import ujson
 from discord.ext import commands
 
-from utils.constants import MOD_OR_ADMIN, TRACKED_COMMANDS, EPIC_EVENTS
+from utils.constants import MOD_OR_ADMIN, TRACKED_COMMANDS, EPIC_EVENTS, ROLE_MILESTONES
 from utils.converters import MemberOrId
 from utils.embeds import *
 from utils.functions import is_yes
 
 log = logging.getLogger(__name__)
-
-ROLE_MILESTONES = {
-    500: '500 hunts',
-    1000: '1000 hunts'
-}
 
 
 class Tracker(commands.Cog):
@@ -46,21 +41,13 @@ class Tracker(commands.Cog):
             f'redis-leaderboard-weekly-{self.env}', f'{guild.id}-{member.id}'
         )
 
-        for role_score, role_name in ROLE_MILESTONES.items().__reversed__():
+        for role_score, role_name in ROLE_MILESTONES.items():
             if weekly_score < role_score:
-                continue
-
-            for bad_score, bad_role_name in ROLE_MILESTONES.items():
-                if bad_score >= role_score:
-                    continue
-                if role := discord.utils.find(lambda r: r.name == bad_role_name, member.roles):
-                    await member.remove_roles(role, reason='Member no longer qualifies for this role.')
+                break
 
             big_role = discord.utils.find(lambda r: r.name == role_name, guild.roles)
             if big_role:
                 await member.add_roles(big_role, reason='Member qualified for role due to hunt counts.')
-
-            break
 
     async def epic_hook(self, author, guild):
         """called on every epic event, used to assign points for epic events"""

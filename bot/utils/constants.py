@@ -26,3 +26,8 @@ EPIC_EVENTS = {
     'epic seed': {'msg': 'Planting the epic seed...', 'id': 102},
     'coin trumpet': {'msg': 'Summoning the coin rain...', 'id': 103}
 }
+
+ROLE_MILESTONES = {
+    500: 'hunt 500 weekly',
+    1000: 'hunt 1000 weekly'
+}

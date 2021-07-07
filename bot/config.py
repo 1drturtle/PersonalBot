@@ -21,3 +21,4 @@ class Config:
         # Error Reporting
         self.SENTRY_URL = os.getenv('SENTRY_URL', None)
         self.ENVIRONMENT = os.getenv('ENVIRONMENT', 'testing')
+        self.GUILD_ID = 713541415099170836 if self.ENVIRONMENT == 'production' else 851549590779330590

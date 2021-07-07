@@ -77,7 +77,7 @@ logging.getLogger('discord.state').setLevel(logging.INFO)
 # Other logs
 logging.getLogger('asyncio').setLevel(logging.WARNING)
 
-intents = discord.Intents(guilds=True, members=False, messages=True)
+intents = discord.Intents(guilds=True, members=True, messages=True)
 
 description = 'Personal Bot developed by Dr Turtle#1771'
 
