@@ -3,7 +3,7 @@ import typing
 
 from discord.ext import commands
 
-from utils.constants import RPG_ARMY_ICON
+from utils.constants import RPG_ARMY_ICON, MOD_OR_ADMIN
 from utils.converters import MemberOrId
 from utils.embeds import DefaultEmbed
 
@@ -15,8 +15,6 @@ ITEM_ICONS = {
 ITEM_DESCRIPTIONS = {
     '1000 server xp': 'Redeemable for 1,000 xp in Army Level (<@804896512051118121>)'
 }
-
-MOD_OR_ADMIN = [commands.has_role('Admin'), commands.has_role('Moderator'), commands.is_owner()]
 
 
 def item_to_str(item_name: str, amount: int) -> str:

@@ -4,43 +4,23 @@ from asyncio import TimeoutError
 from collections import OrderedDict
 from operator import itemgetter
 
-import discord
 import pendulum
 import pymongo.errors
 import ujson
 from discord.ext import commands
 
+from utils.constants import MOD_OR_ADMIN, TRACKED_COMMANDS, EPIC_EVENTS
 from utils.converters import MemberOrId
 from utils.embeds import *
 from utils.functions import is_yes
 
 log = logging.getLogger(__name__)
 
-TRACKED_COMMANDS = {
-    'hunt together': 1,
-    'hunt t': 1,
-    'hunt hardmode together': 2,
-    'hunt together hardmode': 2,
-    'hunt h t': 2,
-    'hunt t h': 2,
-    'ascended hunt hardmode together': 3,
-    'ascended hunt together hardmode': 3,
-    'ascended hunt h t': 3,
-    'ascended hunt t h': 3,
-    'hunt': 10,
-    'hunt hardmode': 11,
-    'hunt h': 12,
-    'ascended hunt hardmode': 13,
-    'ascended hunt h': 14
+ROLE_MILESTONES = {
+    100: '100 hunts',
+    500: '500 hunts',
+    1000: '1000 hunts'
 }
-
-EPIC_EVENTS = {
-    'ultra bait': {'msg': 'Placing the ultra bait...', 'id': 101},
-    'epic seed': {'msg': 'Planting the epic seed...', 'id': 102},
-    'coin trumpet': {'msg': 'Summoning the coin rain...', 'id': 103}
-}
-
-MOD_OR_ADMIN = [commands.has_role('Admin'), commands.has_role('Moderator')]
 
 
 class Tracker(commands.Cog):
@@ -48,6 +28,9 @@ class Tracker(commands.Cog):
         self.bot = bot
         self.redis = self.bot.redis_db
         self.env = self.bot.config.ENVIRONMENT
+
+    async def cog_check(self, ctx):
+        return getattr(ctx.guild, 'id', 0) in self.bot.whitelist
 
     async def update_lb(self, lb_id, author, guild, count=1):
         member = f'{guild.id}-{author.id}'
@@ -60,6 +43,9 @@ class Tracker(commands.Cog):
 
     async def hunt_hook(self, author, guild):
         """called on every hunt, used to assign roles for hunt counts"""
+        weekly_score = await self.redis.zscore(
+            f'redis-leaderboard-weekly-{self.env}'
+        )
         pass
 
     async def epic_hook(self, author, guild):
@@ -117,9 +103,6 @@ class Tracker(commands.Cog):
                                                                     total_hunts[h_type]['last_x'].get(full_hunt_type, 0)
 
         return total_hunts
-
-    async def cog_check(self, ctx):
-        return getattr(ctx.guild, 'id', 0) in self.bot.whitelist
 
     @commands.command(name='optin')
     async def opt_in(self, ctx):
@@ -277,7 +260,7 @@ class Tracker(commands.Cog):
         total_hunts = await self.load_hunts(who, hours)
 
         embed = MemberEmbed(ctx, who, title=f'Hunt Stats for {who.name}'
-                                                if who.id != ctx.author.id else 'Hunt Stats')
+        if who.id != ctx.author.id else 'Hunt Stats')
 
         embed.description = 'Here are the hunts stats. If there is nothing here, try hunting and checking again!'
 
@@ -304,7 +287,7 @@ class Tracker(commands.Cog):
 
         # leaderboard
         leaderboard_stats = await self.get_leaderboard_positions(ctx.guild.id, who.id)
-        lb_names = ['Hunts (total)', 'Hunts (weekly)', 'Epic Events (total)', 'Epic Events (weekly)']
+        lb_names = ['Hunts (total)', 'Hunts (weekly)']
         lb_out = []
         for i, lb_c in enumerate(leaderboard_stats):
             if lb_c is not None:
@@ -342,7 +325,7 @@ class Tracker(commands.Cog):
         total_epic = all_data['epic']
 
         embed = MemberEmbed(ctx, who, title=f'Epic Event Stats for {who.name}'
-                                                                    if who.id != ctx.author.id else 'Epic Event Stats')
+        if who.id != ctx.author.id else 'Epic Event Stats')
         embed.set_footer(text=embed.footer.text + ' | Use tb!optin to sign-up', icon_url=embed.footer.icon_url)
 
         if total_epic['total']:
@@ -403,7 +386,7 @@ class Tracker(commands.Cog):
         return await ctx.send(f'guild `{guild}` added to whitelist.')
 
     @tracked_stats.command(name='admin', hidden=True)
-    @commands.check_any(commands.is_owner(), *MOD_OR_ADMIN)
+    @commands.check_any(*MOD_OR_ADMIN)
     async def admin_stats(self, ctx):
         """Shows stats about the bot. Requires the Moderator or Admin role."""
         embed = DefaultEmbed(ctx)
@@ -434,10 +417,12 @@ class Tracker(commands.Cog):
             {str(event_type): amount}
         )
 
+        type_list = TRACKED_COMMANDS if event_type < 100 else {x: y['id'] for x, y in EPIC_EVENTS.items()}
+        if event_type not in type_list.values():
+            raise commands.BadArgument('Invalid event type.')
+
         user_data.update({time: ujson.dumps(timed_data)})
         await self.redis.hmset_dict(user_id, user_data)
-
-        type_list = TRACKED_COMMANDS if event_type < 100 else {x: y['id'] for x, y in EPIC_EVENTS.items()}
 
         event_index = list(type_list.values()).index(int(event_type))
         event_name = list(type_list.keys())[event_index]
@@ -453,7 +438,31 @@ class Tracker(commands.Cog):
     @tracked_stats.command(name='lbadd', hidden=True)
     @commands.is_owner()
     async def owner_lb_add(self, ctx, who: MemberOrId, type_: str, amount: int):
-        raise NotImplemented('Work in Progress!')
+        """
+        Add an amount of hunts to the weekly or total leaderboard.
+        """
+        if type_ == 'total':
+            await self.update_lb(
+                lb_id=f'redis-leaderboard-{self.env}',
+                author=who,
+                guild=ctx.guild,
+                count=amount
+            )
+        elif type_ == 'weekly':
+            await self.update_lb(
+                lb_id=f'redis-leaderboard-weekly-{self.env}',
+                author=who,
+                guild=ctx.guild,
+                count=amount
+            )
+        else:
+            raise commands.BadArgument('Unexpected type given for leaderboard overwrite.')
+
+        return await ctx.send(embed=SuccessEmbed(
+            ctx,
+            title=f'Leaderboard updated for {who.name}',
+            description=f'{type_.capitalize()} Leaderboard for {who.name} incremented by {amount}'
+        ))
 
 
 def setup(bot):
