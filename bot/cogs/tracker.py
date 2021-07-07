@@ -17,7 +17,6 @@ from utils.functions import is_yes
 log = logging.getLogger(__name__)
 
 ROLE_MILESTONES = {
-    100: '100 hunts',
     500: '500 hunts',
     1000: '1000 hunts'
 }
@@ -58,7 +57,8 @@ class Tracker(commands.Cog):
                     await member.remove_roles(role, reason='Member no longer qualifies for this role.')
 
             big_role = discord.utils.find(lambda r: r.name == role_name, guild.roles)
-            await member.add_roles(big_role, reason='Member qualified for role due to hunt counts.')
+            if big_role:
+                await member.add_roles(big_role, reason='Member qualified for role due to hunt counts.')
 
             break
 
