@@ -128,7 +128,7 @@ class Inventory(commands.Cog):
         embed.title = 'Server Item List'
         out = []
         for _, item in self.items.items():
-            out.append(f"- {item}: {item.desc}")
+            out.append(f"- {item}: {item.desc} ({item.cost} points)")
 
         embed.description = '\n'.join(out)
         embed.set_thumbnail(url=RPG_ARMY_ICON)
