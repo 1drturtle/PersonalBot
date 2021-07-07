@@ -58,6 +58,14 @@ class Tracker(commands.Cog):
             member
         )
 
+    async def hunt_hook(self, author, guild):
+        """called on every hunt, used to assign roles for hunt counts"""
+        pass
+
+    async def epic_hook(self, author, guild):
+        """called on every epic event, used to assign roles for epic events"""
+        pass
+
     async def get_leaderboard_positions(self, guild_id, member_id, epic=False) -> tuple:
         u_id = f'{guild_id}-{member_id}'
         if not epic:
@@ -210,6 +218,9 @@ class Tracker(commands.Cog):
                 leaderboard_id_weekly = f'redis-leaderboard-weekly-{self.env}'
                 await self.update_lb(leaderboard_id_weekly, msg.author, msg.guild)
 
+                # role checker
+                await self.hunt_hook(msg.author, msg.guild)
+
             elif in_epic:
                 def check(m):
                     return m.channel.id == msg.channel.id and m.author.id == 555955826880413696 and \
@@ -235,6 +246,9 @@ class Tracker(commands.Cog):
 
                 await self.update_lb(leaderboard_id_total, msg.author, msg.guild)
                 await self.update_lb(leaderboard_id_weekly, msg.author, msg.guild)
+
+                # role checker
+                await self.epic_hook(msg.author, msg.guild)
 
     @commands.group(name='stats', invoke_without_command=True)
     @commands.cooldown(3, 15, commands.BucketType.user)
