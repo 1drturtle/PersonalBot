@@ -54,18 +54,26 @@ class Tracker(commands.Cog):
         if 'Points' in self.bot.cogs:
             await self.bot.cogs['Points'].epic_hook(author, guild)
 
-    async def get_leaderboard_positions(self, guild_id, member_id, epic=False) -> tuple:
+    async def get_user_leaderboard_pos(self, guild_id, member_id, epic=False):
         u_id = f'{guild_id}-{member_id}'
-        if not epic:
-            hunt_total = await self.redis.zrevrank(f'redis-leaderboard-{self.env}', u_id)
-            hunt_weekly = await self.redis.zrevrank(f'redis-leaderboard-weekly-{self.env}', u_id)
-            hunts_weekly = await self.redis.zscore(f'redis-leaderboard-weekly-{self.env}', u_id)
-            return hunt_total, hunt_weekly, hunts_weekly
+        if epic:
+            total = await self.redis.zrevrank(f'redis-epic-leaderboard-{self.env}', u_id)
+            weekly = await self.redis.zrevrank(f'redis-epic-leaderboard-weekly-{self.env}', u_id)
+            weekly_total = await self.redis.zscore(f'redis-epic-leaderboard-weekly-{self.env}', u_id)
+        else:
+            total = await self.redis.zrevrank(f'redis-leaderboard-{self.env}', u_id)
+            weekly = await self.redis.zrevrank(f'redis-leaderboard-weekly-{self.env}', u_id)
+            weekly_total = await self.redis.zscore(f'redis-leaderboard-weekly-{self.env}', u_id)
 
-        epic_total = await self.redis.zrevrank(f'redis-epic-leaderboard-{self.env}', u_id)
-        epic_weekly = await self.redis.zrevrank(f'redis-epic-leaderboard-weekly-{self.env}', u_id)
-        epics_weekly = await self.redis.zscore(f'redis-epic-leaderboard-weekly-{self.env}', u_id)
-        return epic_total, epic_weekly, epics_weekly
+        na = 'Epic Events' if epic else 'Hunts'
+        names = [f'{na} (total)', f'{na} (weekly)']
+        out = []
+        for i, val in enumerate((total, weekly)):
+            if val is None:
+                continue
+            out.append(f'**{names[i]}:** #{val+1} ({weekly_total or 0} {na.lower()})')
+
+        return '\n'.join(out)
 
     async def load_hunts(self, who: discord.Member, hours: int = 12):
         """Load hunts from redis database and parse into dictionary"""
@@ -290,17 +298,11 @@ class Tracker(commands.Cog):
                 )
 
         # leaderboard
-        leaderboard_stats = await self.get_leaderboard_positions(ctx.guild.id, who.id)
-        lb_names = ['Hunts (total)', 'Hunts (weekly)']
-        lb_out = []
-        for i, lb_c in enumerate(leaderboard_stats[:2]):
-            if lb_c is not None:
-                count = f' ({leaderboard_stats[2]} hunt(s) this week)' if 'weekly' in lb_names[i] else ''
-                lb_out.append(f'**{lb_names[i]}:** #{lb_c + 1}{count}')
+        leaderboard_stats = await self.get_user_leaderboard_pos(ctx.guild.id, who.id)
 
-        if lb_out:
+        if leaderboard_stats:
             embed.add_field(name='\u200b', value='\u200b', inline=False)
-            embed.add_field(name='Leaderboard Positions', value='\n'.join(lb_out))
+            embed.add_field(name='Leaderboard Positions', value=leaderboard_stats)
 
         embed.set_footer(text=embed.footer.text + ' | Use tb!optin to sign-up', icon_url=embed.footer.icon_url)
 
@@ -355,17 +357,11 @@ class Tracker(commands.Cog):
             )
 
         # leaderboard
-        leaderboard_stats = await self.get_leaderboard_positions(ctx.guild.id, who.id, epic=True)
-        lb_names = ['Epic Events (total)', 'Epic Events (weekly)']
-        lb_out = []
-        for i, lb_c in enumerate(leaderboard_stats[:2]):
-            if lb_c is not None:
-                count = f' ({leaderboard_stats[2]} epic event(s) this week)' if 'weekly' in lb_names[i] else ''
-                lb_out.append(f'**{lb_names[i]}:** #{lb_c + 1}{count}')
+        leaderboard_stats = await self.get_user_leaderboard_pos(ctx.guild.id, who.id, epic=True)
 
-        if lb_out:
+        if leaderboard_stats:
             embed.add_field(name='\u200b', value='\u200b', inline=False)
-            embed.add_field(name='Epic Leaderboard Positions', value='\n'.join(lb_out))
+            embed.add_field(name='Epic Leaderboard Positions', value=leaderboard_stats)
 
         embed.description = f'Epic Event stats for {who.name}#{who.discriminator}. If there is nothing here, I have' \
                             f' no tracked epic events.'
