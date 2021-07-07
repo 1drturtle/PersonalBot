@@ -9,13 +9,18 @@ from utils.embeds import DefaultEmbed
 
 log = logging.getLogger(__name__)
 
-
 ITEM_ICONS = {
     '1000 server xp': ':star:'
 }
 ITEM_DESCRIPTIONS = {
     '1000 server xp': 'Redeemable for 1,000 xp in Army Level (<@804896512051118121>)'
 }
+
+MOD_OR_ADMIN = [commands.has_role('Admin'), commands.has_role('Moderator'), commands.is_owner()]
+
+
+def item_to_str(item_name: str, amount: int) -> str:
+    return f'{amount}x {ITEM_ICONS.get(item_name, ":question_mark:")} {item_name}'
 
 
 class Inventory(commands.Cog):
@@ -68,10 +73,7 @@ class Inventory(commands.Cog):
         inv = await self.load_inventory(ctx.author)
         items: typing.List[str] = []
         for item_name, item_count in inv.items():
-            icon = ITEM_ICONS.get(item_name, ':question:')
-            items.append(
-                f'{item_count}x - {icon} {item_name}'
-            )
+            items.append(item_to_str(item_name, item_count))
         embed.add_field(
             name='Items',
             value='\n'.join(items) or 'No items found.'
@@ -92,10 +94,35 @@ class Inventory(commands.Cog):
         embed.set_thumbnail(url=RPG_ARMY_ICON)
         return await ctx.send(embed=embed)
 
-    @inv.command(name='update')
+    @inv.command(name='give')
+    @commands.check_any(*MOD_OR_ADMIN)
+    async def inv_give(self, ctx, who: MemberOrId, item: str, amount: int = 1):
+        """Gives someone an item."""
+
+        embed = DefaultEmbed(ctx)
+
+        embed.title = f'Updating {who}\'s inventory'
+        embed.description = f'Action done by {ctx.author}'
+
+        inv = await self.load_inventory(who)
+
+        inv.update(
+            {item: inv.get(item, 0) + amount}
+        )
+
+        await self.save_inventory(who, inv)
+
+        embed.add_field(
+            name='Item Given',
+            value=f'Gave {who} {item_to_str(item, amount)}'
+        )
+
+        return await ctx.send(embed=embed)
+
+    @inv.command(name='update', hidden=True)
     @commands.is_owner()
     async def inv_update(self, ctx, who: typing.Optional[MemberOrId], *, update_str: str):
-        """Updates a user's inventory. Admin-only."""
+        """Updates a user's inventory. Owner-only."""
 
         if not who:
             who = ctx.author
