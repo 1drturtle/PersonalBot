@@ -9,22 +9,63 @@ from utils.embeds import DefaultEmbed
 
 log = logging.getLogger(__name__)
 
-ITEM_ICONS = {
-    '1000 server xp': ':star:'
-}
-ITEM_DESCRIPTIONS = {
-    '1000 server xp': 'Redeemable for 1,000 xp in Army Level (<@804896512051118121>)'
-}
 
+class Item:
+    def __init__(self, name: str, desc: str, cost: int, effects: dict, icon: str = ':question_mark:'):
+        self.name = name
+        self.desc = desc
+        self.cost = cost
+        self.effects = effects
+        self.icon = icon
 
-def item_to_str(item_name: str, amount: int) -> str:
-    return f'{amount}x {ITEM_ICONS.get(item_name, ":question_mark:")} {item_name}'
+    def amount_str(self, amount: int):
+        return f'{amount}x {str(self)}'
+
+    def __str__(self):
+        return f'{self.icon} {self.name}'
+
+    def to_dict(self):
+        return {
+            'name': self.name,
+            'desc': self.desc,
+            'cost': self.cost,
+            'effects': self.effects,
+            'icon': self.icon
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        if '_id' in data:
+            data.pop('_id')
+        return cls(
+            name=data['name'],
+            desc=data['desc'],
+            cost=data['cost'],
+            effects=data['effects'],
+            icon=data['icon']
+        )
+
+    def __repr__(self):
+        return f'<Item name="{self.name}", desc="{self.desc}",' \
+               f' cost={self.cost}, effects={self.effects}, icon={self.icon}>'
 
 
 class Inventory(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.db = self.bot.mdb['inventory']
+        self.items_db = self.bot.mdb['items']
+        self.items = {}
+
+        self.bot.loop.run_until_complete(self.load_items())
+
+    async def load_items(self):
+        item_data = await self.items_db.find().to_list(length=None)
+        for raw_item in item_data:
+            item = Item.from_dict(raw_item)
+            self.items[item.name] = item
+
+        log.debug('loaded items from db')
 
     async def load_inventory(self, who) -> typing.Dict[str, int]:
         """
@@ -71,7 +112,8 @@ class Inventory(commands.Cog):
         inv = await self.load_inventory(ctx.author)
         items: typing.List[str] = []
         for item_name, item_count in inv.items():
-            items.append(item_to_str(item_name, item_count))
+            item = self.items[item_name]
+            items.append(f'{item_count}x {item}')
         embed.add_field(
             name='Items',
             value='\n'.join(items) or 'No items found.'
@@ -79,74 +121,17 @@ class Inventory(commands.Cog):
 
         return await ctx.send(embed=embed)
 
-    @inv.command(name='items')
+    @inv.command(name='items', aliases=['list'])
     async def inv_itemlist(self, ctx):
         """Shows a list of all items."""
         embed = DefaultEmbed(ctx)
         embed.title = 'Server Item List'
         out = []
-        for item, desc in ITEM_DESCRIPTIONS.items():
-            out.append(f"- {ITEM_ICONS.get(item) or ':question_mark:'} {item}: {desc}")
+        for _, item in self.items.items():
+            out.append(f"- {item}: {item.desc}")
 
         embed.description = '\n'.join(out)
         embed.set_thumbnail(url=RPG_ARMY_ICON)
-        return await ctx.send(embed=embed)
-
-    @inv.command(name='give')
-    @commands.check_any(*MOD_OR_ADMIN)
-    async def inv_give(self, ctx, who: MemberOrId, item: str, amount: int = 1):
-        """Gives someone an item."""
-
-        embed = DefaultEmbed(ctx)
-
-        embed.title = f'Updating {who}\'s inventory'
-        embed.description = f'Action done by {ctx.author}'
-
-        inv = await self.load_inventory(who)
-
-        inv.update(
-            {item: inv.get(item, 0) + amount}
-        )
-
-        await self.save_inventory(who, inv)
-
-        embed.add_field(
-            name='Item Given',
-            value=f'Gave {who} {item_to_str(item, amount)}'
-        )
-
-        return await ctx.send(embed=embed)
-
-    @inv.command(name='update', hidden=True)
-    @commands.is_owner()
-    async def inv_update(self, ctx, who: typing.Optional[MemberOrId], *, update_str: str):
-        """Updates a user's inventory. Owner-only."""
-
-        if not who:
-            who = ctx.author
-
-        embed = DefaultEmbed(ctx)
-
-        embed.title = f'Updating {who}\'s inventory'
-        embed.description = f'Action done by {ctx.author}'
-
-        inv = await self.load_inventory(who)
-
-        out: typing.List[str] = []
-        for combo in update_str.split(';'):
-            item, val = combo.split(',')
-            item, val = item.strip().lower(), int(val.strip())
-            inv[item] = val
-
-            out.append(f'Set {item} to {val}x')
-
-        await self.save_inventory(who, inv)
-
-        embed.add_field(
-            name='Updated Items',
-            value='\n'.join(out)
-        )
-
         return await ctx.send(embed=embed)
 
 

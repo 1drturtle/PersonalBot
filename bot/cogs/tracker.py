@@ -46,13 +46,13 @@ class Tracker(commands.Cog):
         weekly_score = await self.redis.zscore(
             f'redis-leaderboard-weekly-{self.env}', f'{guild.id}-{member.id}'
         )
-        
-        for score, role_name in ROLE_MILESTONES.items().__reversed__():
-            if weekly_score < score:
+
+        for role_score, role_name in ROLE_MILESTONES.items().__reversed__():
+            if weekly_score < role_score:
                 continue
 
             for bad_score, bad_role_name in ROLE_MILESTONES.items():
-                if bad_score >= score:
+                if bad_score >= role_score:
                     continue
                 if role := discord.utils.find(lambda r: r.name == bad_role_name, member.roles):
                     await member.remove_roles(role, reason='Member no longer qualifies for this role.')
@@ -63,8 +63,9 @@ class Tracker(commands.Cog):
             break
 
     async def epic_hook(self, author, guild):
-        """called on every epic event, used to assign roles for epic events"""
-        pass
+        """called on every epic event, used to assign points for epic events"""
+        if 'Points' in self.bot.cogs:
+            await self.bot.cogs['Points'].epic_hook(author, guild)
 
     async def get_leaderboard_positions(self, guild_id, member_id, epic=False) -> tuple:
         u_id = f'{guild_id}-{member_id}'
