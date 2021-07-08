@@ -3,6 +3,7 @@ import typing
 from asyncio import TimeoutError
 from collections import OrderedDict
 from operator import itemgetter
+import re
 
 import pendulum
 import pymongo.errors
@@ -194,7 +195,7 @@ class Tracker(commands.Cog):
                            len(m.embeds) == 0 and msg.author.name.lower() in m.content.lower()
 
                 try:
-                    await self.bot.wait_for('message', check=check, timeout=5)
+                    bot_msg = await self.bot.wait_for('message', check=check, timeout=5)
                 except TimeoutError:
                     return None
 
@@ -216,6 +217,25 @@ class Tracker(commands.Cog):
 
                 # role checker
                 await self.hunt_hook(msg.author, msg.guild)
+
+                # item checker
+                bot_msg_content = discord.utils.remove_markdown(bot_msg.content)
+                if f'{msg.author.name} got a'.lower() in bot_msg_content.lower():
+
+                    item_uid = f'redis-drops-{self.env}-{msg.guild.id}:{msg.author.id}'
+                    item_data = ujson.loads(await self.redis.hget(item_uid, time_stamp) or '{}')
+
+                    for line in bot_msg_content.splitlines():
+                        if not line.startswith(f'{msg.author.name} got a'):
+                            continue
+                        item = line.split('got an') if 'got an' in line else line.split('got a')
+                        item = re.sub(r'( *<:.+:\d+> *)', '', item[1]).strip()  # remove custom emojis
+                        item = re.sub(r'( *:.+: *)', '', item).strip()  # normal ones too
+                        item_data.update(
+                            {item: item_data.get(item, 0)+1}
+                        )
+
+                    await self.redis.hset(item_uid, time_stamp, ujson.dumps(item_data))
 
             elif in_epic:
                 def check(m):
