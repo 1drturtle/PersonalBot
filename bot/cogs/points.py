@@ -49,7 +49,7 @@ class Points(commands.Cog):
 
         embed.add_field(
             name='Points',
-            value=f'{points}'
+            value=f':crossed_swords: {points} army points'
         )
 
         return await ctx.send(embed=embed)
