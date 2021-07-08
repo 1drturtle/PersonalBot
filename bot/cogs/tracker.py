@@ -255,7 +255,6 @@ class Tracker(commands.Cog):
             # epic hook (points)
             await self.epic_hook(msg.author, msg.guild)
 
-
     @commands.group(name='stats', invoke_without_command=True)
     @commands.cooldown(3, 15, commands.BucketType.user)
     @commands.guild_only()
@@ -269,6 +268,8 @@ class Tracker(commands.Cog):
 
         if not who:
             who = ctx.author
+
+        hours = min(max(1, hours), 48)
 
         if not await self.redis.sismember(f'opted-{self.env}', str(who.id)):
             if who.id == ctx.author.id:
@@ -329,6 +330,7 @@ class Tracker(commands.Cog):
         `who`- Who to look up the events of. If not specified, defaults to yourself
         """
         who = who or ctx.author
+        hours = min(max(1, hours), 48)
         if not await self.redis.sismember(f'opted-{self.env}', str(who.id)):
             if who.id == ctx.author.id:
                 return await ctx.send(embed=ErrorEmbed(ctx, title='Stats Error!', description='You must sign up for '
