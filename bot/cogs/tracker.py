@@ -184,80 +184,77 @@ class Tracker(commands.Cog):
 
         time = pendulum.now(tz=pendulum.tz.UTC)
         time_stamp = time.format('YYYY-MM_DD_HH')
-        in_tracked, in_epic = False, False
 
-        if (in_tracked := cmd in TRACKED_COMMANDS) or (in_epic := epic_cmd in EPIC_EVENTS):
-            if in_tracked:
+        if cmd in TRACKED_COMMANDS:
+            def check(m):
+                if '**Your Horse**'.lower() in m.content.lower():
+                    return False
+                elif f'**{msg.author.name}** lost but'.lower() in m.content.lower():
+                    return False
+                return m.channel.id == msg.channel.id and m.author.id == 555955826880413696 and \
+                       len(m.embeds) == 0 and msg.author.name.lower() in m.content.lower()
 
-                def check(m):
-                    if '**Your Horse**'.lower() in m.content.lower():
-                        return False
-                    elif f'**{msg.author.name}** lost but'.lower() in m.content.lower():
-                        return False
-                    return m.channel.id == msg.channel.id and m.author.id == 555955826880413696 and \
-                           len(m.embeds) == 0 and msg.author.name.lower() in m.content.lower()
+            try:
+                bot_msg = await self.bot.wait_for('message', check=check, timeout=5)
+            except TimeoutError:
+                return None
 
-                try:
-                    bot_msg = await self.bot.wait_for('message', check=check, timeout=5)
-                except TimeoutError:
-                    return None
+            cmd_id = str(TRACKED_COMMANDS[cmd])
 
-                cmd_id = str(TRACKED_COMMANDS[cmd])
+            # update hunt
+            await self.add_event(str_id, time_stamp, cmd_id)
 
-                # update hunt
-                await self.add_event(str_id, time_stamp, cmd_id)
+            # increment leaderboard
+            leaderboard_id_total = f'redis-leaderboard-{self.env}'
+            await self.update_lb(leaderboard_id_total, msg.author, msg.guild)
+            leaderboard_id_weekly = f'redis-leaderboard-weekly-{self.env}'
+            await self.update_lb(leaderboard_id_weekly, msg.author, msg.guild)
 
-                # increment leaderboard
-                leaderboard_id_total = f'redis-leaderboard-{self.env}'
-                await self.update_lb(leaderboard_id_total, msg.author, msg.guild)
-                leaderboard_id_weekly = f'redis-leaderboard-weekly-{self.env}'
-                await self.update_lb(leaderboard_id_weekly, msg.author, msg.guild)
+            # role checker
+            await self.hunt_hook(msg.author, msg.guild)
 
-                # role checker
-                await self.hunt_hook(msg.author, msg.guild)
+            # item checker
+            bot_msg_content = discord.utils.remove_markdown(bot_msg.content)
+            if f'{msg.author.name} got a'.lower() in bot_msg_content.lower():
 
-                # item checker
-                bot_msg_content = discord.utils.remove_markdown(bot_msg.content)
-                if f'{msg.author.name} got a'.lower() in bot_msg_content.lower():
+                item_uid = f'redis-drops-{self.env}-{msg.guild.id}:{msg.author.id}'
+                item_data = ujson.loads(await self.redis.hget(item_uid, time_stamp) or '{}')
 
-                    item_uid = f'redis-drops-{self.env}-{msg.guild.id}:{msg.author.id}'
-                    item_data = ujson.loads(await self.redis.hget(item_uid, time_stamp) or '{}')
+                for line in bot_msg_content.splitlines():
+                    if not line.startswith(f'{msg.author.name} got a'):
+                        continue
+                    item = line.split('got an') if 'got an' in line else line.split('got a')
+                    item = re.sub(r'( *<:.+:\d+> *)', '', item[1]).strip()  # remove custom emojis
+                    item = re.sub(r'( *:.+: *)', '', item).strip()  # normal ones too
+                    item_data.update(
+                        {item: item_data.get(item, 0) + 1}
+                    )
 
-                    for line in bot_msg_content.splitlines():
-                        if not line.startswith(f'{msg.author.name} got a'):
-                            continue
-                        item = line.split('got an') if 'got an' in line else line.split('got a')
-                        item = re.sub(r'( *<:.+:\d+> *)', '', item[1]).strip()  # remove custom emojis
-                        item = re.sub(r'( *:.+: *)', '', item).strip()  # normal ones too
-                        item_data.update(
-                            {item: item_data.get(item, 0)+1}
-                        )
+                await self.redis.hset(item_uid, time_stamp, ujson.dumps(item_data))
+        elif epic_cmd in EPIC_EVENTS:
+            def check(m):
+                return m.channel.id == msg.channel.id and m.author.id == 555955826880413696 and \
+                       len(m.embeds) == 0 and m.content.lower() == EPIC_EVENTS[epic_cmd]['msg'].lower()
 
-                    await self.redis.hset(item_uid, time_stamp, ujson.dumps(item_data))
+            try:
+                await self.bot.wait_for('message', check=check, timeout=5)
+            except TimeoutError:
+                return None
 
-            elif in_epic:
-                def check(m):
-                    return m.channel.id == msg.channel.id and m.author.id == 555955826880413696 and \
-                           len(m.embeds) == 0 and m.content.lower() == EPIC_EVENTS[epic_cmd]['msg'].lower()
+            cmd_id = str(EPIC_EVENTS[epic_cmd]['id'])
+            # add epic event
+            await self.add_event(str_id, time_stamp, cmd_id)
 
-                try:
-                    await self.bot.wait_for('message', check=check, timeout=5)
-                except TimeoutError:
-                    return None
+            # increment leaderboard
+            leaderboard_id_total = f'redis-epic-leaderboard-{self.env}'
+            leaderboard_id_weekly = f'redis-epic-leaderboard-weekly-{self.env}'
 
-                cmd_id = str(EPIC_EVENTS[epic_cmd]['id'])
-                # add epic event
-                await self.add_event(str_id, time_stamp, cmd_id)
+            await self.update_lb(leaderboard_id_total, msg.author, msg.guild)
+            await self.update_lb(leaderboard_id_weekly, msg.author, msg.guild)
 
-                # increment leaderboard
-                leaderboard_id_total = f'redis-epic-leaderboard-{self.env}'
-                leaderboard_id_weekly = f'redis-epic-leaderboard-weekly-{self.env}'
+            # epic hook (points)
+            await self.epic_hook(msg.author, msg.guild)
 
-                await self.update_lb(leaderboard_id_total, msg.author, msg.guild)
-                await self.update_lb(leaderboard_id_weekly, msg.author, msg.guild)
-
-                # role checker
-                await self.epic_hook(msg.author, msg.guild)
 
     @commands.group(name='stats', invoke_without_command=True)
     @commands.cooldown(3, 15, commands.BucketType.user)
