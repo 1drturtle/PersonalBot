@@ -71,7 +71,8 @@ class Tracker(commands.Cog):
         for i, val in enumerate((total, weekly)):
             if val is None:
                 continue
-            out.append(f'**{names[i]}:** #{val+1} ({weekly_total or 0} {na.lower()})')
+            out.append(f'**{names[i]}:** #{val+1}'
+                       f'{f" ({weekly_total or 0} {na.lower()})" if "weekly" in names[i] else ""}')
 
         return '\n'.join(out)
 
