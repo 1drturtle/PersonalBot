@@ -193,7 +193,7 @@ class Tracker(commands.Cog):
                            len(m.embeds) == 0 and msg.author.name.lower() in m.content.lower()
 
                 try:
-                    await self.bot.wait_for('message', check=check, timeout=3)
+                    await self.bot.wait_for('message', check=check, timeout=5)
                 except TimeoutError:
                     return None
 
@@ -222,7 +222,7 @@ class Tracker(commands.Cog):
                            len(m.embeds) == 0 and m.content.lower() == EPIC_EVENTS[epic_cmd]['msg'].lower()
 
                 try:
-                    await self.bot.wait_for('message', check=check, timeout=3)
+                    await self.bot.wait_for('message', check=check, timeout=5)
                 except TimeoutError:
                     return None
 
