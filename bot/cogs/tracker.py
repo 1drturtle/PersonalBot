@@ -118,6 +118,13 @@ class Tracker(commands.Cog):
 
         return total_hunts
 
+    async def add_event(self, field_id: str, key_id: str, event_id: str, count: int = 1):
+        field = ujson.loads(await self.redis.hget(field_id, key_id) or '{}')
+        field.update(
+            {event_id: field.get(event_id, 0) + count}
+        )
+        await self.redis.hset(field_id, key_id, ujson.dumps(field))
+
     @commands.command(name='optin')
     async def opt_in(self, ctx):
         """Opts-in to the RPG tracker system."""
@@ -180,10 +187,6 @@ class Tracker(commands.Cog):
         in_tracked, in_epic = False, False
 
         if (in_tracked := cmd in TRACKED_COMMANDS) or (in_epic := epic_cmd in EPIC_EVENTS):
-            values = await self.redis.hgetall(str_id, encoding='utf-8')
-
-            time_values = ujson.loads(values.get(time_stamp, '{}'))
-
             if in_tracked:
 
                 def check(m):
@@ -201,14 +204,9 @@ class Tracker(commands.Cog):
 
                 cmd_id = str(TRACKED_COMMANDS[cmd])
 
-                time_values.update(
-                    {cmd_id: time_values.get(cmd_id, 0) + 1}
-                )
+                # update hunt
+                await self.add_event(str_id, time_stamp, cmd_id)
 
-                values[time_stamp] = ujson.dumps(time_values)
-
-                # update tracked stats
-                await self.redis.hmset_dict(str_id, values)
                 # increment leaderboard
                 leaderboard_id_total = f'redis-leaderboard-{self.env}'
                 await self.update_lb(leaderboard_id_total, msg.author, msg.guild)
@@ -248,14 +246,9 @@ class Tracker(commands.Cog):
                     return None
 
                 cmd_id = str(EPIC_EVENTS[epic_cmd]['id'])
+                # add epic event
+                await self.add_event(str_id, time_stamp, cmd_id)
 
-                time_values.update({
-                    cmd_id: time_values.get(cmd_id, 0) + 1
-                })
-
-                values[time_stamp] = ujson.dumps(time_values)
-
-                await self.redis.hmset_dict(str_id, values)
                 # increment leaderboard
                 leaderboard_id_total = f'redis-epic-leaderboard-{self.env}'
                 leaderboard_id_weekly = f'redis-epic-leaderboard-weekly-{self.env}'
