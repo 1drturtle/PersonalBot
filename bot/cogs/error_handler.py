@@ -54,7 +54,7 @@ class CommandErrorHandler(commands.Cog):
 
         if isinstance(error, commands.DisabledCommand):
             await ctx.send(
-                embed=ErrorEmbed(ctx, title='Disabled Command', description=f'`{cmd_name}` has been disabled until'
+                embed=ErrorEmbed(ctx, title='Disabled Command', description=f'`{cmd_name}` has been disabled until '
                                                                             f'further notice.')
             )
 
