@@ -172,11 +172,11 @@ class Tracker(commands.Cog):
         if not (msg.guild.id in self.bot.whitelist):
             return
 
-        str_id = f'redis-tracked-{self.env}-{msg.guild.id}:{str(msg.author.id)}'
-        if not await self.redis.sismember(f'opted-{self.env}', str(msg.author.id)):
+        if not msg.content.lower().startswith('rpg'):
             return None
 
-        if not msg.content.lower().startswith('rpg'):
+        str_id = f'redis-tracked-{self.env}-{msg.guild.id}:{str(msg.author.id)}'
+        if not await self.redis.sismember(f'opted-{self.env}', str(msg.author.id)):
             return None
 
         cmd = msg.content.lower().lstrip('rpg ')
