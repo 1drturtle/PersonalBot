@@ -292,7 +292,7 @@ class Tracker(commands.Cog):
             # epic hook (points)
             await self.epic_hook(msg.author, msg.guild)
 
-    @commands.group(name='stats', invoke_without_command=True)
+    @commands.group(name='stats', aliases=['s'], invoke_without_command=True)
     @commands.cooldown(3, 15, commands.BucketType.user)
     @commands.guild_only()
     async def tracked_stats(self, ctx, who: typing.Optional[MemberOrId] = None, hours: typing.Optional[int] = 12):
@@ -415,6 +415,49 @@ class Tracker(commands.Cog):
 
         embed.description = f'Epic Event stats for {who.name}#{who.discriminator}. If there is nothing here, I have' \
                             f' no tracked epic events.'
+
+        return await ctx.send(embed=embed)
+
+    @tracked_stats.command(name='items', aliases=['i'], hidden=True)
+    @commands.cooldown(3, 15, commands.BucketType.user)
+    @commands.check_any(*MOD_OR_ADMIN)
+    async def tracked_items(self, ctx, who: typing.Optional[MemberOrId] = None, hours: int = 12):
+        """Shows how many items you have dropped in the last `hours`"""
+
+        if not who:
+            who = ctx.author
+
+        hours = min(max(1, hours), 48)
+
+        if not await self.redis.sismember(f'opted-{self.env}', str(who.id)):
+            if who.id == ctx.author.id:
+                return await ctx.send(embed=ErrorEmbed(ctx, title='Stats Error!', description='You must sign up for '
+                                                                                              'tracking to display '
+                                                                                              'stats. See `tb!optin`'))
+            else:
+                return await ctx.send(
+                    embed=ErrorEmbed(ctx, title='Stats Error!', description=f'{who.name} has not signed up for hunt'
+                                                                            f' tracking.')
+                )
+
+        drops = await self.load_items(who, hours, True)
+        embed = MemberEmbed(ctx, who,
+                            title=f'Item Drops for {who.name}')
+
+        if drops['total']:
+            embed.add_field(
+                name='Item Drops (total)',
+                value='\n'.join([f'**{item}**: {count}' for item, count in drops['total']])
+            )
+
+        if drops['last_x']:
+            embed.add_field(
+                name=f'Item Drops (last {hours}h)',
+                value='\n'.join([f'**{item}**: {count}' for item, count in drops['last_x']])
+            )
+
+        if not len(embed.fields):
+            embed.description = 'No item drops stored in my database. Try dropping an item from a hunt and try again.'
 
         return await ctx.send(embed=embed)
 
