@@ -5,6 +5,7 @@ from collections import OrderedDict
 from operator import itemgetter
 import re
 
+import discord
 import pendulum
 import pymongo.errors
 import ujson
@@ -117,6 +118,42 @@ class Tracker(commands.Cog):
                                                                     total_hunts[h_type]['last_x'].get(full_hunt_type, 0)
 
         return total_hunts
+
+    async def load_items(self, who: discord.Member, hours: int = 12, tuple_form=False):
+        """Load all recorded items in the past `hours`, and overall"""
+        raw_content = await self.redis.hgetall(f'redis-drops-{self.env}-{who.guild.id}:{str(who.id)}', encoding='utf-8')
+        out = {k: ujson.loads(v) for k, v in raw_content.items()}
+
+        total_items = {
+            'total': {},
+            'last_x': {}
+        }
+
+        hours = min(max(hours, 1), 48)
+
+        now = pendulum.now(tz=pendulum.tz.UTC)
+
+        for timestamp, items in out.items():
+            time = pendulum.from_format(timestamp, 'YYYY-MM_DD_HH', tz=pendulum.tz.UTC)
+            diff = time.diff(now, False).in_hours()
+
+            for item_name, drop_count in items.items():
+                total_items['total'][item_name] = total_items['total'].get(item_name, 0) + drop_count
+
+                if diff <= hours:
+                    total_items['last_x'][item_name] = total_items['last_x'].get(item_name, 0) + drop_count
+
+        if tuple_form:
+            total = sorted([(count, i_name) for count, i_name in total_items['total'].items()], key=itemgetter(1),
+                           reverse=True)
+            last_x = sorted([(count, i_name) for count, i_name in total_items['last_x'].items()], key=itemgetter(1),
+                            reverse=True)
+            return {
+                'total': total,
+                'last_x': last_x
+            }
+
+        return total_items
 
     async def add_event(self, field_id: str, key_id: str, event_id: str, count: int = 1):
         field = ujson.loads(await self.redis.hget(field_id, key_id) or '{}')
