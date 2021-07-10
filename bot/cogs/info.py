@@ -35,6 +35,22 @@ class Info(commands.Cog):
         # add bot ping
         embed.title = f'{self.bot.user.name} Ping'
         embed.add_field(name='Bot Ping', value=f'```fix\n{round(self.bot.latency * 1000)} ms\n```')
+
+        # redis db ping
+
+        t = pendulum.now()
+        await self.bot.redis_db.ping()
+        t2 = pendulum.now()
+        redis_ping = round((t2 - t).total_seconds() * 1000)
+        embed.add_field(name='Redis DB ping', value=f'```fix\n{redis_ping} ms\n```')
+
+        # mongodb ping
+        t = pendulum.now()
+        await self.bot.mdb['whitelist'].find_one()
+        t2 = pendulum.now()
+        mongo_ping = round((t2 - t).total_seconds() * 1000)
+        embed.add_field(name='MongoDB ping', value=f'```fix\n{mongo_ping} ms\n```')
+
         # time sending message
         websocket = pendulum.now()
         msg = await ctx.send(embed=embed)
