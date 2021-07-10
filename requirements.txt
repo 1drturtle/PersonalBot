@@ -16,3 +16,4 @@ jishaku
 ujson # faster json
 pendulum # time
 aiocron # schedule
+pillow # profile image
