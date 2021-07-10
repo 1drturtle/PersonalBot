@@ -172,6 +172,14 @@ class Tracker(commands.Cog):
 
         await self.redis.sadd(f'opted-{self.env}', str_id)
         embed = SuccessEmbed(ctx, title='Opted-in!', description='You have been opted-in to the RPG hunt tracker.')
+
+        role = discord.utils.find(lambda r: r.name.lower() == 'opted-in', ctx.guild.roles)
+        try:
+            if role:
+                await ctx.author.add_roles(role, reason='Member opted-in')
+        except (discord.Forbidden, discord.HTTPException):
+            pass
+
         return await ctx.send(embed=embed)
 
     @commands.command(name='cleardata')
@@ -193,6 +201,18 @@ class Tracker(commands.Cog):
 
         await self.redis.srem(f'opted-{self.env}', str(ctx.author.id))
         await self.redis.delete(f'redis-tracked-{self.env}-{ctx.guild.id}:{ctx.author.id}')
+        await self.redis.delete(f'redis-drops-{self.env}-{ctx.guild.id}:{ctx.author.id}')
+
+        for lb in ('leaderboard', 'leaderboard-weekly', 'epic-leaderboard', 'epic-leaderboard-weekly'):
+            await self.redis.zrem(f'redis-{lb}-{self.env}', f'{ctx.guild.id}-{ctx.author.id}')
+
+        role = discord.utils.find(lambda r: r.name.lower() == 'opted-in', ctx.guild.roles)
+        if role:
+            try:
+                await ctx.author.remove_roles(role, reason='User data cleared.')
+            except (discord.HTTPException, discord.Forbidden):
+                pass
+
         return await ctx.send(
             embed=SuccessEmbed(
                 ctx, title='Data Cleared',
