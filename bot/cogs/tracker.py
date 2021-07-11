@@ -506,10 +506,27 @@ class Tracker(commands.Cog):
         """Shows stats about the bot. Requires the Moderator or Admin role."""
         embed = DefaultEmbed(ctx)
         embed.title = 'Owner Debug Stats'
+
+        opted_in = discord.utils.find(lambda r: r.name == 'opted-in', ctx.guild.roles)
+
         embed.add_field(
             name='# of users',
-            value=f"{len(await self.redis.smembers(f'opted-{self.env}'))} opted-in users."
+            value=f"{await self.redis.scard(f'opted-{self.env}')} opted-in users. "
+                  f"({len(opted_in.members)} with role)"
         )
+
+        # number of users with weekly hunt roles
+        in_role: typing.List[typing.Tuple[str, int]] = []
+        for _, role in ROLE_MILESTONES.items():
+            role = discord.utils.find(lambda r: r.name.lower() == role.lower(), ctx.guild.roles)
+            if not role:
+                continue
+            in_role.append((role.name, len(role.members)))
+        embed.add_field(
+            name='Weekly Roles',
+            value='\n'.join([f'**{role_name.title()}**: {count} member(s)' for role_name, count in in_role]) or 'N/A.'
+        )
+
         embed.description = 'WIP'
 
         return await ctx.send(embed=embed)

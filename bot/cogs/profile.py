@@ -26,9 +26,10 @@ class Profile(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name='profile', aliases=['pfp', 'p'])
+    @commands.command(name='profile', aliases=['pfp', 'p'], hidden=True)
+    @commands.is_owner()
     async def profile(self, ctx):
-        """Shows your current profile"""
+        """Shows your current profile (WIP)"""
 
         avatar = BytesIO(await ctx.author.avatar_url_as(size=256).read())
         cmd = functools.partial(create_profile, ctx, avatar)
