@@ -6,7 +6,7 @@ import discord
 import pendulum
 from discord.ext import commands, tasks
 
-from utils.embeds import DefaultEmbed, SuccessEmbed
+from utils.embeds import DefaultEmbed, SuccessEmbed, DefaultEmbedMessage
 from utils.constants import ROLE_MILESTONES
 from utils.functions import is_yes
 
@@ -86,7 +86,45 @@ class Leaderboard(commands.Cog):
 
     async def reset_weekly(self):
         log.info(f'Weekly Leaderboard Reset Triggered...')
+        # post weekly summary
+        guild = self.bot.get_guild(self.bot.server_id)
+        channel = discord.utils.find(lambda c: c.name == '📃╏announcements', guild.channels)
+        embed = DefaultEmbedMessage(self.bot)
+        if channel:
+            # top 3 hunts/weekly
+            embed.title = 'Leaderboard - End of Week Stats'
+            await self.get_top_ten('hunt_weekly', f'redis-leaderboard-weekly-{self.env}')
+            await self.get_top_ten('epic_weekly', f'redis-epic-leaderboard-weekly-{self.env}')
+            embed.add_field(
+                name='Hunts (top 3, weekly)',
+                value='\n'.join([f'**#{i+1}**. {list(pair.keys())[0]} - {list(pair.values())[0]} hunts'
+                                for i, pair in enumerate(self.leaderboards['hunt_weekly'])]) or 'No data.'
+            )
+            embed.add_field(
+                name='Epic Events (top 3, weekly)',
+                value='\n'.join([f'**#{i + 1}**. {list(pair.keys())[0]} - {list(pair.values())[0]} hunts'
+                                 for i, pair in enumerate(self.leaderboards['epic_weekly'])]) or 'No data.'
+            )
+            # number of people who got hunt roles
 
+            # number of users with weekly hunt roles
+            in_role: typing.List[typing.Tuple[str, int]] = []
+            for _, role in ROLE_MILESTONES.items():
+                role = discord.utils.find(lambda r: r.name.lower() == role.lower(), guild.roles)
+                if not role:
+                    continue
+                in_role.append((role.name, len(role.members)))
+            embed.add_field(
+                name='Weekly Milestones',
+                value='\n'.join(
+                    [f'**{role_name.title()}**: {count} user(s)' for role_name, count in in_role]) or 'N/A.',
+                inline=False
+            )
+
+            log.info('Weekly announcement sent.')
+            await channel.send(embed=embed)
+
+        # wipe data!
         await self.redis.delete(f'redis-leaderboard-weekly-{self.env}')
         await self.redis.delete(f'redis-epic-leaderboard-weekly-{self.env}')
 

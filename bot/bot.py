@@ -43,6 +43,8 @@ class MyBot(commands.Bot):
             self.startup()
         )
 
+        self.server_id = 713541415099170836 if self.environment == 'production' else 851549590779330590
+
         super(MyBot, self).__init__(description=desc, **options)
 
     @property

@@ -31,3 +31,13 @@ class MemberEmbed(DefaultEmbed):
     def __init__(self, ctx, who, **kwargs):
         super(MemberEmbed, self).__init__(ctx, **kwargs)
         self.set_author(name=who.name, icon_url=who.avatar_url)
+
+
+class DefaultEmbedMessage(discord.Embed):
+    def __init__(self, bot, **kwargs):
+        super().__init__(**kwargs)
+        self.set_author(name=bot.user.name, icon_url=bot.user.avatar_url)
+        self.timestamp = datetime.datetime.utcnow()
+        self.set_thumbnail(url=RPG_ARMY_ICON)
+
+        self.colour = random.randint(0, 0xffffff)
