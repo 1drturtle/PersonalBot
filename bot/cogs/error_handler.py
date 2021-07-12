@@ -61,7 +61,7 @@ class CommandErrorHandler(commands.Cog):
         elif isinstance(error, commands.NoPrivateMessage):
             try:
                 await ctx.author.send(
-                    embed=ErrorEmbed(ctx, title='No DM\'s', description=f'`{cmd_name}` cannot be used in private'
+                    embed=ErrorEmbed(ctx, title='No DM\'s', description=f'`{cmd_name}` cannot be used in private '
                                                                         f'messages.')
                 )
             except discord.HTTPException:
@@ -103,7 +103,10 @@ class CommandErrorHandler(commands.Cog):
                     pass
 
         elif isinstance(error, commands.CheckFailure):
-            pass
+            try:
+                await ctx.message.add_reaction('❗')
+            except (discord.Forbidden, discord.HTTPException):
+                pass
 
         elif isinstance(error, commands.MemberNotFound):
             await ctx.send(embed=ErrorEmbed(ctx,
