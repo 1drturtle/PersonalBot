@@ -41,7 +41,7 @@ class Profile(commands.Cog):
     async def profile(self, ctx):
         """Shows your current profile (WIP)"""
 
-        avatar = BytesIO(await ctx.author.avatar_url_as(size=256).read())
+        avatar = BytesIO(await ctx.author.avatar.with_size(256).read())
         cmd = functools.partial(create_profile, ctx, avatar)
         profile = await self.bot.loop.run_in_executor(None, func=cmd)
 

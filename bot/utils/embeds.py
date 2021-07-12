@@ -7,8 +7,8 @@ from utils.constants import RPG_ARMY_ICON
 class DefaultEmbed(discord.Embed):
     def __init__(self, ctx, **kwargs):
         super(DefaultEmbed, self).__init__(**kwargs)
-        self.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-        self.set_footer(text=ctx.bot.user.name, icon_url=ctx.bot.user.avatar_url)
+        self.set_author(name=ctx.author.name, icon_url=ctx.author.avatar.url)
+        self.set_footer(text=ctx.bot.user.name, icon_url=ctx.bot.user.avatar.url)
         self.timestamp = datetime.datetime.utcnow()
         self.set_thumbnail(url=RPG_ARMY_ICON)
 
@@ -30,13 +30,13 @@ class ErrorEmbed(DefaultEmbed):
 class MemberEmbed(DefaultEmbed):
     def __init__(self, ctx, who, **kwargs):
         super(MemberEmbed, self).__init__(ctx, **kwargs)
-        self.set_author(name=who.name, icon_url=who.avatar_url)
+        self.set_author(name=who.name, icon_url=who.avatar.url)
 
 
 class DefaultEmbedMessage(discord.Embed):
     def __init__(self, bot, **kwargs):
         super().__init__(**kwargs)
-        self.set_author(name=bot.user.name, icon_url=bot.user.avatar_url)
+        self.set_author(name=bot.user.name, icon_url=bot.user.avatar.url)
         self.timestamp = datetime.datetime.utcnow()
         self.set_thumbnail(url=RPG_ARMY_ICON)
 
