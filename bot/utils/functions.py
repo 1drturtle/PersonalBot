@@ -3,3 +3,10 @@ def is_yes(content: str):
         return True
     return False
 
+
+async def send_dm(member, *args, **kwargs):
+    try:
+        msg = await member.send(*args, **kwargs)
+        return msg
+    except:
+        return None

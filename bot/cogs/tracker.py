@@ -14,7 +14,7 @@ from discord.ext import commands
 from utils.constants import MOD_OR_ADMIN, TRACKED_COMMANDS, EPIC_EVENTS, ROLE_MILESTONES
 from utils.converters import MemberOrId
 from utils.embeds import *
-from utils.functions import is_yes
+from utils.functions import is_yes, send_dm
 
 log = logging.getLogger(__name__)
 
@@ -48,7 +48,12 @@ class Tracker(commands.Cog):
                 break
 
             big_role = discord.utils.find(lambda r: r.name == role_name, guild.roles)
-            if big_role:
+            user_has_role = discord.utils.find(lambda r: r.id == big_role.id, member.roles)
+            if big_role and not user_has_role:
+                embed = DefaultEmbedMessage(self.bot, title='Weekly Hunt Milestone!',
+                                            description=f'You have reached a new hunt milestone, and have acquired the '
+                                                        f'`{big_role.name}` role until the end of the week.')
+                await send_dm(member, embed=embed)
                 await member.add_roles(big_role, reason='Member qualified for role due to hunt counts.')
 
     async def epic_hook(self, author, guild):
