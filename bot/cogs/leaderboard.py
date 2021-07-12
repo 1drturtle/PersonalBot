@@ -133,8 +133,6 @@ class Leaderboard(commands.Cog):
         log.info(f'Weekly Leaderboard Reset Complete.')
         # remove weekly roles
         guild = self.bot.get_guild(self.bot.config.GUILD_ID)
-        if not guild:
-            return
 
         for role_name in ROLE_MILESTONES.values():
             role = discord.utils.find(lambda r: r.name == role_name, guild.roles)
