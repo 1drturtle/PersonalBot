@@ -127,7 +127,7 @@ class Inventory(commands.Cog):
         items: typing.List[str] = []
         for item_name, item_count in inv.items():
             item = self.items[item_name]
-            items.append(f'{item_count}x {item}')
+            items.append(f'{item_count}x **{item}**')
         embed.add_field(
             name='Items',
             value='\n'.join(items) or 'No items found.'
