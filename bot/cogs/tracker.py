@@ -167,6 +167,22 @@ class Tracker(commands.Cog):
         )
         await self.redis.hset(field_id, key_id, ujson.dumps(field))
 
+    async def add_item(self, msg, time_stamp, bot_msg_content):
+        item_uid = f'redis-drops-{self.env}-{msg.guild.id}:{msg.author.id}'
+        item_data = ujson.loads(await self.redis.hget(item_uid, time_stamp) or '{}')
+
+        for line in bot_msg_content.splitlines():
+            if not line.startswith(f'{msg.author.name} got a'):
+                continue
+            item = line.split('got an') if 'got an' in line else line.split('got a')
+            item = re.sub(r'( *<:.+:\d+> *)', '', item[1]).strip()  # remove custom emojis
+            item = re.sub(r'( *:.+: *)', '', item).strip()  # normal ones too
+            item_data.update(
+                {item: item_data.get(item, 0) + 1}
+            )
+
+        await self.redis.hset(item_uid, time_stamp, ujson.dumps(item_data))
+
     @commands.command(name='optin')
     async def opt_in(self, ctx):
         """Opts-in to the RPG tracker system."""
@@ -278,21 +294,8 @@ class Tracker(commands.Cog):
             # item checker
             bot_msg_content = discord.utils.remove_markdown(bot_msg.content)
             if f'{msg.author.name} got a'.lower() in bot_msg_content.lower():
+                await self.add_item(msg, time_stamp, bot_msg_content)
 
-                item_uid = f'redis-drops-{self.env}-{msg.guild.id}:{msg.author.id}'
-                item_data = ujson.loads(await self.redis.hget(item_uid, time_stamp) or '{}')
-
-                for line in bot_msg_content.splitlines():
-                    if not line.startswith(f'{msg.author.name} got a'):
-                        continue
-                    item = line.split('got an') if 'got an' in line else line.split('got a')
-                    item = re.sub(r'( *<:.+:\d+> *)', '', item[1]).strip()  # remove custom emojis
-                    item = re.sub(r'( *:.+: *)', '', item).strip()  # normal ones too
-                    item_data.update(
-                        {item: item_data.get(item, 0) + 1}
-                    )
-
-                await self.redis.hset(item_uid, time_stamp, ujson.dumps(item_data))
         elif epic_cmd in EPIC_EVENTS:
             def check(m):
                 return m.channel.id == msg.channel.id and m.author.id == 555955826880413696 and \
@@ -407,7 +410,7 @@ class Tracker(commands.Cog):
         total_epic = all_data['epic']
 
         embed = MemberEmbed(ctx, who, title=f'Epic Event Stats for {who.name}'
-        if who.id != ctx.author.id else 'Epic Event Stats')
+                                            if who.id != ctx.author.id else 'Epic Event Stats')
         embed.set_footer(text=embed.footer.text + ' | Use tb!optin to sign-up', icon_url=embed.footer.icon_url)
 
         if total_epic['total']:
