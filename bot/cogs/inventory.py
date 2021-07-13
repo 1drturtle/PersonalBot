@@ -5,14 +5,27 @@ from discord.ext import commands
 
 from utils.constants import RPG_ARMY_ICON, MOD_OR_ADMIN
 from utils.converters import MemberOrId
-from utils.embeds import DefaultEmbed
+from utils.embeds import DefaultEmbed, ErrorEmbed
 
 log = logging.getLogger(__name__)
 
 
+class AmountConverter(commands.Converter):
+    async def convert(self, ctx, argument: str):
+        if argument.lower() == 'all':
+            return 'all'
+        elif argument.lower() == 'half':
+            return 'half'
+        elif argument.lower().strip('+-').isnumeric():
+            return int(argument)
+        raise commands.BadArgument()
+
+
 class Item:
-    def __init__(self, name: str, desc: str, cost: int, effects: dict, icon: str = ':question_mark:'):
+    def __init__(self, name: str, desc: str, cost: int, effects: dict, icon: str = ':question_mark:',
+                 aliases=None):
         self.name = name
+        self.aliases = aliases or []
         self.desc = desc
         self.cost = cost
         self.effects = effects
@@ -42,7 +55,8 @@ class Item:
             desc=data['desc'],
             cost=data['cost'],
             effects=data['effects'],
-            icon=data['icon']
+            icon=data.get('icon', ':question_mark:'),
+            aliases=data.get('aliases', [])
         )
 
     def __repr__(self):
@@ -63,7 +77,7 @@ class Inventory(commands.Cog):
         item_data = await self.items_db.find().to_list(length=None)
         for raw_item in item_data:
             item = Item.from_dict(raw_item)
-            self.items[item.name] = item
+            self.items[item.name.lower()] = item
 
         log.debug('loaded items from db')
 
@@ -121,18 +135,58 @@ class Inventory(commands.Cog):
 
         return await ctx.send(embed=embed)
 
+    @inv.command(name='shop', aliases=['s'])
+    async def inv_shop(self, ctx):
+        """Shows a list of all items available to buy."""
+        embed = DefaultEmbed(ctx)
+        embed.title = 'Server Item Shop'
+        out = []
+        for _, item in self.items.items():
+            out.append(f"- **{item}**: {item.cost} points")
+
+        embed.description = '\n'.join(out)
+        embed.add_field(name='How to Buy', value=f'You can buy an item with '
+                                                 f'`{self.bot.config.PREFIX}inv buy <item name>`.')
+        embed.set_thumbnail(url=RPG_ARMY_ICON)
+        return await ctx.send(embed=embed)
+
     @inv.command(name='items', aliases=['list'])
-    async def inv_itemlist(self, ctx):
-        """Shows a list of all items."""
+    async def inv_item_list(self, ctx):
+        """Shows a list of all items available to buy."""
         embed = DefaultEmbed(ctx)
         embed.title = 'Server Item List'
         out = []
         for _, item in self.items.items():
-            out.append(f"- {item}: {item.desc} ({item.cost} points)")
+            out.append(f"- **{item}**: {item.desc}")
 
         embed.description = '\n'.join(out)
+        embed.add_field(name='How to Buy', value=f'You can buy an item with '
+                                                 f'`{self.bot.config.PREFIX}inv buy <item name>`.')
         embed.set_thumbnail(url=RPG_ARMY_ICON)
         return await ctx.send(embed=embed)
+
+    @inv.command(name='buy')
+    async def inv_buy(self, ctx, amount: typing.Optional[AmountConverter], *, item_name: str):
+        """Buy an item from the shop."""
+        if not amount:
+            amount = 1
+
+        for item in self.items:
+            if item_name.lower() == item.name.lower():
+                item_inst = item
+                break
+            else:
+                for alias in item.aliases:
+                    if item_name.lower() == alias.lower():
+                        item_inst = item
+                        break
+        else:
+            return await ctx.send(
+                embed=ErrorEmbed(ctx,
+                                 title='Item Not Found',
+                                 description=f'Could not find an item with that name. '
+                                             f'Check `{self.bot.config.PREFIX}inv items` for a list of all items.')
+            )
 
 
 def setup(bot):
