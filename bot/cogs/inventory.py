@@ -71,14 +71,21 @@ class Item:
 class Inventory(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+        self.points_db = self.bot.mdb['points']
+
+        self.cd_db = self.bot.mdb['epic_cd']
+        self.epic_cd_checker.start()
+
         self.db = self.bot.mdb['inventory']
         self.items_db = self.bot.mdb['items']
-        self.points_db = self.bot.mdb['points']
-        self.cd_db = self.bot.mdb['epic_cd']
         self.items = {}
+        self.item_mapping = {
+            'temp_role': self.run_temp_role,
+            'xp': self.run_xp
+        }
 
         self.bot.loop.run_until_complete(self.load_items())
-        self.epic_cd_checker.start()
 
     def cog_unload(self):
         self.epic_cd_checker.stop()
@@ -103,6 +110,20 @@ class Inventory(commands.Cog):
             self.items[item.name.lower()] = item
 
         log.debug('loaded items from db')
+
+    def find_item(self, user_input: str) -> typing.Optional[Item]:
+        for item in self.items.values():
+            if user_input.lower() == item.name.lower():
+                item_inst = item
+                break
+            else:
+                is_alias = any([user_input.lower() == alias.lower() for alias in item.aliases])
+                if is_alias:
+                    item_inst = item
+                    break
+        else:
+            return None
+        return item_inst
 
     async def load_inventory(self, who) -> typing.Dict[str, int]:
         """
@@ -204,23 +225,15 @@ class Inventory(commands.Cog):
     @inv.command(name='buy')
     async def inv_buy(self, ctx, amount: typing.Optional[AmountConverter], *, item_name: str):
         """Buy an item from the shop.
-        Item name must exactly match the item name or one of its aliases."""
+        Item name must exactly match the item name or one of its aliases.
+        Amount is optional, and defaults to 1."""
         # set the default amount to 1 item
         if not amount:
             amount = 1
 
         # find our item object from names or aliases
-        for item in self.items.values():
-            if item_name.lower() == item.name.lower():
-                item_inst = item
-                break
-            else:
-                is_alias = any([item_name.lower() == alias.lower() for alias in item.aliases])
-                if is_alias:
-                    item_inst = item
-                    break
-        # error embed if no item found
-        else:
+        item_inst = self.find_item(item_name)
+        if not item_inst:
             return await ctx.send(
                 embed=ErrorEmbed(ctx,
                                  title='Item Not Found',
@@ -245,7 +258,7 @@ class Inventory(commands.Cog):
                     ctx,
                     title='Not enough points',
                     description=f'You do not have enough points to make this purchase. '
-                                f'You need `{(amount*item_inst.cost) - user_points}` more point(s).'
+                                f'You need `{(amount * item_inst.cost) - user_points}` more point(s).'
                 )
             )
 
@@ -262,7 +275,7 @@ class Inventory(commands.Cog):
             )
 
         # do the points transaction
-        await self.mod_points(ctx.author, -(amount*item_inst.cost))
+        await self.mod_points(ctx.author, -(amount * item_inst.cost))
         # add items
         await self.db.update_one(
             {'_id': ctx.author.id},
@@ -273,13 +286,55 @@ class Inventory(commands.Cog):
         embed = DefaultEmbed(ctx)
         embed.title = f'{ctx.author} buys {"some items" if amount != 1 else "an item"}!'
         embed.add_field(
-            name='Points', value=f'{user_points-(amount*item_inst.cost)} (-{amount*item_inst.cost})'
+            name='Points', value=f'{user_points - (amount * item_inst.cost)} (-{amount * item_inst.cost})'
         )
         embed.add_field(
             name='New Items', value=f'**{item_inst}** (+{amount})'
         )
 
         return await ctx.send(embed=embed)
+
+    @inv.command(name='use')
+    async def inv_use(self, ctx, *, item_name: str):
+        """Use an item from your inventory."""
+
+        # find our item object from names or aliases
+        item_inst = self.find_item(item_name)
+        if item_inst is None:
+            return await ctx.send(
+                embed=ErrorEmbed(ctx,
+                                 title='Item Not Found',
+                                 description=f'Could not find an item with that name. '
+                                             f'Check `{self.bot.config.PREFIX}inv items` for a list of all items.')
+            )
+
+        # do we have the item
+        user_data = await self.db.find_one({'_id': ctx.author.id}) or {}
+        if user_data.get(item_inst.name, 0) < 1:
+            return await ctx.send(
+                embed=ErrorEmbed(ctx,
+                                 title='Item not in inventory',
+                                 description=f'You cannot use `{item_inst.name}` '
+                                             f'as you do not have one in your inventory.')
+            )
+
+        # run the specified function for the item
+        # noinspection PyArgumentList
+        result = await self.item_mapping[item_inst.effects.get('type')](ctx, item_inst)
+        # remove item from inv on success
+        if result is None or result == -1:
+            await self.db.update_one(
+                {'_id': ctx.author.id},
+                {'$inc': {item_inst.name: -1}}
+            )
+
+    # item use functions
+
+    async def run_xp(self, ctx, item: Item):
+        raise NotImplementedError
+
+    async def run_temp_role(self, ctx, item: Item):
+        raise NotImplementedError
 
     # noinspection PyTypeChecker
     @tasks.loop(minutes=1)
