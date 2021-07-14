@@ -7,7 +7,7 @@ from utils.converters import MemberOrId
 from utils.constants import EPIC_EVENTS_POINTS
 from utils.embeds import DefaultEmbedMessage
 import logging
-
+import re
 
 log = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class Points(commands.Cog):
             upsert=True
         )
 
-    async def hunt_hook(self, msg, event_type: str):
+    async def hunt_hook(self, msg, _):
         weekly = await self.bot.redis_db.zscore(
             f'redis-leaderboard-weekly-{self.bot.config.ENVIRONMENT}', f'{msg.guild.id}-{msg.author.id}'
         )
@@ -47,6 +47,29 @@ class Points(commands.Cog):
             await msg.channel.send(embed=DefaultEmbedMessage(self.bot, title='Point Added!',
                                                              description=f'You reached {weekly} weekly hunts, and got '
                                                                          f'{hunt_point} point(s).'))
+
+    @commands.Cog.listener(name='on_message')
+    async def vote_listener(self, msg):
+        if getattr(msg.guild, 'id', None) not in self.bot.whitelist:
+            return
+
+        if msg.channel.name != '🔝╏vote-us' or msg.author.id != 702134514637340702:
+            return
+
+        if len(msg.embeds):
+            embed = msg.embeds[0]
+        else:
+            return
+
+        mention = re.match(r'<@(!?)(?P<id>\d+)>', embed.description.lower())
+        if not mention:
+            return
+
+        member = msg.guild.get_member(mention.get('id'))
+        if not member:
+            return
+
+        await self.db.update_one({'_id': msg.author.id}, {'$inc': {'points': 10}})
 
     async def get_points(self, member) -> int:
         data = await self.db.find_one({'_id': member.id})
