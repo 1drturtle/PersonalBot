@@ -241,6 +241,18 @@ class Inventory(commands.Cog):
                 )
             )
 
+        # error if we would have more than 99 items
+        current_item_count = (await self.db.find_one({'_id': ctx.author.id}) or {}).get(item_inst.name, 0)
+        if current_item_count + amount > 99:
+            return await ctx.send(
+                embed=ErrorEmbed(
+                    ctx,
+                    title='Too many items',
+                    description='This transaction would result in more than 99 of this item type.'
+                                '\nThe maximum amount of one type of item is 99.'
+                )
+            )
+
         # do the points transaction
         await self.mod_points(ctx.author, -(amount*item_inst.cost))
         # add items
