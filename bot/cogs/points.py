@@ -4,6 +4,12 @@ from discord.ext import commands
 
 from utils.embeds import MemberEmbed
 from utils.converters import MemberOrId
+from utils.constants import EPIC_EVENTS_POINTS
+from utils.embeds import DefaultEmbedMessage
+import logging
+
+
+log = logging.getLogger(__name__)
 
 
 class Points(commands.Cog):
@@ -14,16 +20,33 @@ class Points(commands.Cog):
     async def cog_check(self, ctx):
         return getattr(ctx.guild, 'id', 0) in self.bot.whitelist
 
-    async def epic_hook(self, author, guild):
+    async def epic_hook(self, author, guild, event_type: str):
 
         if guild.id not in self.bot.whitelist:
             return
 
         await self.db.update_one(
             {'_id': author.id},
-            {'$inc': {'points': 1}},
+            {'$inc': {'points': EPIC_EVENTS_POINTS[event_type]}},
             upsert=True
         )
+
+    async def hunt_hook(self, msg, event_type: str):
+        weekly = await self.bot.redis_db.zscore(
+            f'redis-leaderboard-weekly-{self.bot.config.ENVIRONMENT}', f'{msg.guild.id}-{msg.author.id}'
+        )
+
+        if weekly is None:
+            weekly = 0
+
+        if weekly % 100 == 0 and weekly != 0:
+            # if our current hunt is a multiple of 100
+            # add a point depending on the current weekly hunt count
+            hunt_point = 1 + (weekly >= 500) + (weekly >= 1000)
+            await self.db.update_one({'_id': msg.author.id}, {'$inc': {'points': hunt_point}})
+            await msg.channel.send(embed=DefaultEmbedMessage(self.bot, title='Point Added!',
+                                                             description=f'You reached {weekly} weekly hunts, and got '
+                                                                         f'{hunt_point} point(s).'))
 
     async def get_points(self, member) -> int:
         data = await self.db.find_one({'_id': member.id})

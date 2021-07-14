@@ -80,12 +80,12 @@ class CommandErrorHandler(commands.Cog):
                                  description=f'Missing required argument `{error.param.name}` for `{cmd_name}`')
             )
 
-        # elif isinstance(error, commands.BadArgument):
-        #     await ctx.send(
-        #         embed=ErrorEmbed(ctx,
-        #                          title='Invalid Argument',
-        #                          description=f'`{cmd_name}` was passed an invalid argument. ')
-        #     )
+        elif isinstance(error, commands.BadArgument):
+            await ctx.send(
+                embed=ErrorEmbed(ctx,
+                                 title='Invalid Argument',
+                                 description=f'`{cmd_name}` was passed an invalid argument. ')
+            )
 
         elif isinstance(error, discord.Forbidden):
             err = ErrorEmbed(ctx,
@@ -112,6 +112,15 @@ class CommandErrorHandler(commands.Cog):
             await ctx.send(embed=ErrorEmbed(ctx,
                                             title='Member Not Found',
                                             description='Could not find the member based on the provided arguments.'))
+
+        elif isinstance(error, NotImplementedError):
+            await ctx.send(
+                embed=ErrorEmbed(
+                    ctx,
+                    title='Command Not Implemented',
+                    description='The command you tried to run is not fully implemented yet. Check back later!'
+                )
+            )
 
         else:
             # All other Errors not returned come here. And we can just print the default TraceBack.

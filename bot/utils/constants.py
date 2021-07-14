@@ -33,3 +33,9 @@ ROLE_MILESTONES = {
 }
 
 EPIC_EVENTS_CHANNEL_NAME = '🐟╏epic🎺events🪓'
+
+EPIC_EVENTS_POINTS = {
+    'ultra bait': 5,
+    'epic seed': 3,
+    'coin trumpet': 1
+}

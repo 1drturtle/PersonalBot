@@ -19,8 +19,8 @@ class AmountConverter(commands.Converter):
         elif argument.lower() == 'half':
             return 'half'
         elif argument.lower().strip('+-').isnumeric():
-            if int(argument) < 0:
-                raise commands.BadArgument()
+            if int(argument) < 1:
+                argument = '1'
             return int(argument)
         raise commands.BadArgument()
 

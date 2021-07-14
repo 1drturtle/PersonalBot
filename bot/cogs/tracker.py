@@ -37,8 +37,9 @@ class Tracker(commands.Cog):
             member
         )
 
-    async def hunt_hook(self, member, guild):
+    async def hunt_hook(self, msg, event_type: str):
         """called on every hunt, used to assign roles for hunt counts"""
+        guild, member = msg.guild, msg.author
         weekly_score = await self.redis.zscore(
             f'redis-leaderboard-weekly-{self.env}', f'{guild.id}-{member.id}'
         )
@@ -56,10 +57,13 @@ class Tracker(commands.Cog):
                 await send_dm(member, embed=embed)
                 await member.add_roles(big_role, reason='Member qualified for role due to hunt counts.')
 
-    async def epic_hook(self, author, guild):
+        if 'Points' in self.bot.cogs:
+            await self.bot.cogs['Points'].hunt_hook(msg, event_type)
+
+    async def epic_hook(self, author, guild: discord.Guild, event_type: str):
         """called on every epic event, used to assign points for epic events"""
         if 'Points' in self.bot.cogs:
-            await self.bot.cogs['Points'].epic_hook(author, guild)
+            await self.bot.cogs['Points'].epic_hook(author, guild, event_type)
 
     async def get_user_leaderboard_pos(self, guild_id, member_id, epic=False):
         u_id = f'{guild_id}-{member_id}'
@@ -289,7 +293,7 @@ class Tracker(commands.Cog):
             await self.update_lb(leaderboard_id_weekly, msg.author, msg.guild)
 
             # role checker
-            await self.hunt_hook(msg.author, msg.guild)
+            await self.hunt_hook(msg, cmd)
 
             # item checker
             bot_msg_content = discord.utils.remove_markdown(bot_msg.content)
@@ -318,7 +322,7 @@ class Tracker(commands.Cog):
             await self.update_lb(leaderboard_id_weekly, msg.author, msg.guild)
 
             # epic hook (points)
-            await self.epic_hook(msg.author, msg.guild)
+            await self.epic_hook(msg.author, msg.guild, epic_cmd)
 
     @commands.group(name='stats', aliases=['s'], invoke_without_command=True)
     @commands.cooldown(3, 15, commands.BucketType.user)
