@@ -31,3 +31,5 @@ ROLE_MILESTONES = {
     500: 'hunt 500 weekly',
     1000: 'hunt 1000 weekly'
 }
+
+EPIC_EVENTS_CHANNEL_NAME = '🐟╏epic🎺events🪓'

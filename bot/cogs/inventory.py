@@ -1,10 +1,13 @@
 import logging
 import typing
 
-from discord.ext import commands
+import discord
+from discord.ext import commands, tasks
 
-from utils.constants import RPG_ARMY_ICON
+from utils.constants import RPG_ARMY_ICON, EPIC_EVENTS_CHANNEL_NAME
 from utils.embeds import DefaultEmbed, ErrorEmbed
+import asyncio
+import time
 
 log = logging.getLogger(__name__)
 
@@ -71,9 +74,14 @@ class Inventory(commands.Cog):
         self.db = self.bot.mdb['inventory']
         self.items_db = self.bot.mdb['items']
         self.points_db = self.bot.mdb['points']
+        self.cd_db = self.bot.mdb['epic_cd']
         self.items = {}
 
         self.bot.loop.run_until_complete(self.load_items())
+        self.epic_cd_checker.start()
+
+    def cog_unload(self):
+        self.epic_cd_checker.stop()
 
     async def get_points(self, who):
         data = await self.points_db.find_one({'_id': who.id})
@@ -272,6 +280,39 @@ class Inventory(commands.Cog):
         )
 
         return await ctx.send(embed=embed)
+
+    # noinspection PyTypeChecker
+    @tasks.loop(minutes=1)
+    async def epic_cd_checker(self):
+        """check the users in DB epic cd every minute"""
+        data = await self.cd_db.find().to_list(None)
+        now = round(time.time())
+
+        guild = self.bot.get_guild(self.bot.config.GUILD_ID)
+        ch: discord.TextChannel = discord.utils.find(lambda c: c.name == EPIC_EVENTS_CHANNEL_NAME, guild.channels)
+        overwrites = ch.overwrites
+
+        for item in data:
+            if item.get('end_time') < now:
+                u = guild.get_member(item.get('_id'))
+
+                perms = overwrites.get(u, discord.PermissionOverwrite())
+                perms.update(manage_messages=None)
+
+                overwrites.update({u: perms})
+
+                if perms.is_empty():
+                    overwrites.pop(u)
+
+                await self.cd_db.delete_one({'_id': u.id})
+
+        await ch.edit(overwrites=overwrites)
+
+    @epic_cd_checker.before_loop
+    async def epic_cd_checker_before(self):
+        await self.bot.wait_until_ready()
+        await asyncio.sleep(1)
+        log.info('Epic Event CD checker started')
 
 
 def setup(bot):
