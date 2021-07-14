@@ -3,8 +3,7 @@ import typing
 
 from discord.ext import commands
 
-from utils.constants import RPG_ARMY_ICON, MOD_OR_ADMIN
-from utils.converters import MemberOrId
+from utils.constants import RPG_ARMY_ICON
 from utils.embeds import DefaultEmbed, ErrorEmbed
 
 log = logging.getLogger(__name__)
@@ -17,6 +16,8 @@ class AmountConverter(commands.Converter):
         elif argument.lower() == 'half':
             return 'half'
         elif argument.lower().strip('+-').isnumeric():
+            if int(argument) < 0:
+                raise commands.BadArgument()
             return int(argument)
         raise commands.BadArgument()
 
@@ -69,9 +70,23 @@ class Inventory(commands.Cog):
         self.bot = bot
         self.db = self.bot.mdb['inventory']
         self.items_db = self.bot.mdb['items']
+        self.points_db = self.bot.mdb['points']
         self.items = {}
 
         self.bot.loop.run_until_complete(self.load_items())
+
+    async def get_points(self, who):
+        data = await self.points_db.find_one({'_id': who.id})
+        if not data:
+            return 0
+        return data.get('points', 0)
+
+    async def mod_points(self, who, amt):
+        await self.points_db.update_one(
+            {'_id': who.id},
+            {'$inc': {'points': amt}},
+            upsert=True
+        )
 
     async def load_items(self):
         item_data = await self.items_db.find().to_list(length=None)
@@ -127,7 +142,7 @@ class Inventory(commands.Cog):
         items: typing.List[str] = []
         for item_name, item_count in inv.items():
             item = self.items[item_name]
-            items.append(f'{item_count}x **{item}**')
+            items.append(f'`{item_count:02d}x -` **{item}**')
         embed.add_field(
             name='Items',
             value='\n'.join(items) or 'No items found.'
@@ -144,7 +159,7 @@ class Inventory(commands.Cog):
         for _, item in self.items.items():
             out.append(f"- **{item}**: {item.cost} points")
 
-        embed.description = '\n'.join(out)
+        embed.description = ('\n'.join(out) or 'No items in database.')
         embed.add_field(name='How to Buy', value=f'You can buy an item with '
                                                  f'`{self.bot.config.PREFIX}inv buy <item name>`.')
         embed.set_thumbnail(url=RPG_ARMY_ICON)
@@ -159,27 +174,44 @@ class Inventory(commands.Cog):
         for _, item in self.items.items():
             out.append(f"- **{item}**: {item.desc}")
 
-        embed.description = '\n'.join(out)
+        embed.description = ('\n'.join(out) or 'No items in database.')
         embed.add_field(name='How to Buy', value=f'You can buy an item with '
                                                  f'`{self.bot.config.PREFIX}inv buy <item name>`.')
         embed.set_thumbnail(url=RPG_ARMY_ICON)
         return await ctx.send(embed=embed)
 
+    @inv.command(name='aliases')
+    async def inv_list_aliases(self, ctx):
+        """List aliases for server items. Aliases can be used in `buy` and `use`."""
+        embed = DefaultEmbed(ctx)
+        embed.title = 'Server Item Alias List'
+        out = []
+        for _, item in self.items.items():
+            out.append(f"- **{item}**: {', '.join([f'`{x}`' for x in item.aliases]) if item.aliases else 'No aliases'}")
+
+        embed.description = ('\n'.join(out) or 'No items in database.')
+        embed.set_thumbnail(url=RPG_ARMY_ICON)
+        return await ctx.send(embed=embed)
+
     @inv.command(name='buy')
     async def inv_buy(self, ctx, amount: typing.Optional[AmountConverter], *, item_name: str):
-        """Buy an item from the shop."""
+        """Buy an item from the shop.
+        Item name must exactly match the item name or one of its aliases."""
+        # set the default amount to 1 item
         if not amount:
             amount = 1
 
-        for item in self.items:
+        # find our item object from names or aliases
+        for item in self.items.values():
             if item_name.lower() == item.name.lower():
                 item_inst = item
                 break
             else:
-                for alias in item.aliases:
-                    if item_name.lower() == alias.lower():
-                        item_inst = item
-                        break
+                is_alias = any([item_name.lower() == alias.lower() for alias in item.aliases])
+                if is_alias:
+                    item_inst = item
+                    break
+        # error embed if no item found
         else:
             return await ctx.send(
                 embed=ErrorEmbed(ctx,
@@ -187,6 +219,47 @@ class Inventory(commands.Cog):
                                  description=f'Could not find an item with that name. '
                                              f'Check `{self.bot.config.PREFIX}inv items` for a list of all items.')
             )
+
+        # grab our user's points
+        user_points = await self.get_points(ctx.author)
+        max_can_buy = user_points // item_inst.cost
+
+        # convert all and half to values
+        if amount == 'all':
+            amount = max_can_buy
+        elif amount == 'half':
+            amount = max_can_buy // 2
+
+        # error embed if we can't buy it
+        if amount > max_can_buy:
+            return await ctx.send(
+                embed=ErrorEmbed(
+                    ctx,
+                    title='Not enough points',
+                    description=f'You do not have enough points to make this purchase. '
+                                f'You need `{(amount*item_inst.cost) - user_points}` more point(s).'
+                )
+            )
+
+        # do the points transaction
+        await self.mod_points(ctx.author, -(amount*item_inst.cost))
+        # add items
+        await self.db.update_one(
+            {'_id': ctx.author.id},
+            {'$inc': {item_inst.name: amount}}
+        )
+
+        # send output
+        embed = DefaultEmbed(ctx)
+        embed.title = f'{ctx.author} buys {"some items" if amount != 1 else "an item"}!'
+        embed.add_field(
+            name='Points', value=f'{user_points-(amount*item_inst.cost)} (-{amount*item_inst.cost})'
+        )
+        embed.add_field(
+            name='New Items', value=f'**{item_inst}** (+{amount})'
+        )
+
+        return await ctx.send(embed=embed)
 
 
 def setup(bot):
