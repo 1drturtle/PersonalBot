@@ -9,6 +9,7 @@ from utils.embeds import DefaultEmbedMessage, DefaultEmbed
 import logging
 import re
 import time
+import pendulum
 
 log = logging.getLogger(__name__)
 
@@ -119,15 +120,33 @@ class Points(commands.Cog):
 
         return await ctx.send(embed=embed)
 
-    @points.command(name='boosts')
+    @points.command(name='boosts', aliases=['boost', 'b'])
     async def points_boost(self, ctx):
         """Shows your current point boost status."""
 
         boost_data = await self.bot.mdb['point_boost'].find_one({'_id': ctx.author.id})
+
+        if boost_data:
+            now = pendulum.now(tz=pendulum.UTC)
+            prev = pendulum.from_timestamp(boost_data.get('end_time'))
+            dur = prev - now
+
+            if dur.total_seconds() < 0:
+                await self.bot.mdb['point_boost'].delete_one({'_id': ctx.author.id})
+                boost_data = None
+
         if not boost_data:
             return await ctx.send(embed=DefaultEmbed(ctx, title='No boosts found',
                                                      description='You do not have an active point boost.'
                                                                  ' You can get one by voting for the server'))
+
+        embed = DefaultEmbed(ctx)
+        embed.title = 'Active Point Boost'
+        embed.description = "You currently have an active point multiplier for hunting and epic events."
+        embed.add_field(name='Multiplier', value=f'{boost_data.get("multiplier")}x')
+        embed.add_field(name='Time Remaining', value=dur.in_words())
+
+        return await ctx.send(embed=embed)
 
 
 def setup(bot):
