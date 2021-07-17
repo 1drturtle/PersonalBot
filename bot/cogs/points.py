@@ -89,7 +89,8 @@ class Points(commands.Cog):
         new_end = round(time.time()) + 60 * 60 * 6  # 6 hours
         await self.bot.mdb['point_boost'].update_one(
             {'_id': member.id},
-            {'$set': {'multiplier': 2, 'end_time': new_end}}
+            {'$set': {'multiplier': 2, 'end_time': new_end}},
+            upsert=True
         )
 
     async def get_points(self, member) -> int:
