@@ -35,7 +35,8 @@ class Points(commands.Cog):
         # update points
         await self.db.update_one(
             {'_id': user_id},
-            {'$inc': {'points': amount * multiplier}}
+            {'$inc': {'points': amount * multiplier}},
+            upsert=True
         )
 
     async def epic_hook(self, author, guild, event_type: str):
