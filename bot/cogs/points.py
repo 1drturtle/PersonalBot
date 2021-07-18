@@ -76,7 +76,7 @@ class Points(commands.Cog):
         else:
             return
 
-        mention = re.match(r'<@(!?)(?P<id>\d+)>', embed.description.lower())
+        mention = re.search(r'<@(!?)(?P<id>\d+)>', embed.description.lower())
         if not mention:
             return
 

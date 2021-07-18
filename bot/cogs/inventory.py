@@ -2,6 +2,7 @@ import logging
 import typing
 
 import discord
+import pendulum
 from discord.ext import commands, tasks
 
 from utils.constants import RPG_ARMY_ICON, EPIC_EVENTS_CHANNEL_NAME
@@ -81,7 +82,7 @@ class Inventory(commands.Cog):
         self.items_db = self.bot.mdb['items']
         self.items = {}
         self.item_mapping = {
-            'temp_role': self.run_temp_role,
+            'temp_role': self.run_temp_perms,
             'xp': self.run_xp
         }
 
@@ -333,8 +334,43 @@ class Inventory(commands.Cog):
     async def run_xp(self, ctx, item: Item):
         raise NotImplementedError
 
-    async def run_temp_role(self, ctx, item: Item):
-        raise NotImplementedError
+    async def run_temp_perms(self, ctx, item: Item):
+        # item: effects {duration: int (hours)}
+        # mongo {_id: u_id, end_time: epoch + expire}
+
+        now = round(time.time())
+        later = now + (60 * 60 * item.effects['duration'])
+
+        embed = DefaultEmbed(ctx)
+        embed.title = 'Epic Event CD Bypass Activated!'
+        embed.add_field(name='Total Duration', value=f'{item.effects["duration"]} hour(s)')
+        embed.add_field(name='End Time', value=f'<t:{later}:R>')
+        embed.description = f'Your CD bypass item has been activated, starting now!\n' \
+                            f'Check your current boost status with {ctx.prefix}inv bypass'
+
+        await self.cd_db.update_one(
+            {'_id': ctx.author.id},
+            {'$set': {'end_time': later}},
+            upsert=True
+        )
+
+        return await ctx.send(embed=embed)
+
+    @inv.command(name='bypass')
+    async def inv_boost(self, ctx):
+        """Checks your current CD bypass and remaining time."""
+        data = await self.cd_db.find_one({'_id': ctx.author.id})
+        if not data:
+            return await ctx.send(
+                embed=ErrorEmbed(ctx, title='No bypass found', description='You do not have an active epic cd bypass.')
+            )
+
+        embed = DefaultEmbed(ctx, title='Epic CD Bypass Info', description='Here is when your current bypass will end.'
+                                                                           '\nBuying a new bypass will **overwrite** '
+                                                                           'your current bypass, not extend it.')
+        embed.add_field(name='End Time', value=f'<t:{data.get("end_time")}:R>')
+
+        return await ctx.send(embed=embed)
 
     # noinspection PyTypeChecker
     @tasks.loop(minutes=1)
