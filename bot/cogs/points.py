@@ -80,7 +80,7 @@ class Points(commands.Cog):
         if not mention:
             return
 
-        member = msg.guild.get_member(mention.group('id'))
+        member = msg.guild.get_member(int(mention.group('id')))
         if not member:
             return
 
