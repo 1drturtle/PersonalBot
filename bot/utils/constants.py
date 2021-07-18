@@ -39,3 +39,5 @@ EPIC_EVENTS_POINTS = {
     'epic seed': 3,
     'coin trumpet': 1
 }
+
+POINTS_EMOJI = '<:rpg_army_by_mommapie:778443713596620901>'

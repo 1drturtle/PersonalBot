@@ -1,15 +1,15 @@
-import typing
-
-from discord.ext import commands
-
-from utils.embeds import MemberEmbed
-from utils.converters import MemberOrId
-from utils.constants import EPIC_EVENTS_POINTS
-from utils.embeds import DefaultEmbedMessage, DefaultEmbed
 import logging
 import re
 import time
+import typing
+
 import pendulum
+from discord.ext import commands
+
+from utils.constants import EPIC_EVENTS_POINTS, POINTS_EMOJI
+from utils.converters import MemberOrId
+from utils.embeds import DefaultEmbedMessage, DefaultEmbed
+from utils.embeds import MemberEmbed
 
 log = logging.getLogger(__name__)
 
@@ -117,7 +117,7 @@ class Points(commands.Cog):
 
         embed.add_field(
             name='Points',
-            value=f':crossed_swords: {points} army points'
+            value=f'{POINTS_EMOJI} {points} army points'
         )
 
         return await ctx.send(embed=embed)
