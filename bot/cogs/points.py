@@ -135,15 +135,14 @@ class Points(commands.Cog):
 
             if dur.total_seconds() < 0:
                 await self.bot.mdb['point_boost'].delete_one({'_id': ctx.author.id})
-                boost_data = None
-
-            embed = DefaultEmbed(ctx)
-            embed.title = 'Active Point Boost'
-            embed.description = "You currently have an active point multiplier for hunting and epic events."
-            embed.add_field(name='Multiplier', value=f'{boost_data.get("multiplier")}x')
-            embed.add_field(name='Time Remaining', value=dur.in_words())
-            embed.add_field(name='How to Vote?', value='Vote for the server by visting '
-                                       '[this link](https://top.gg/servers/713541415099170836/vote)')
+            else:
+                embed = DefaultEmbed(ctx)
+                embed.title = 'Active Point Boost'
+                embed.description = "You currently have an active point multiplier for hunting and epic events."
+                embed.add_field(name='Multiplier', value=f'{boost_data.get("multiplier")}x')
+                embed.add_field(name='Time Remaining', value=dur.in_words())
+                embed.add_field(name='How to Vote?', value='Vote for the server by visting '
+                                           '[this link](https://top.gg/servers/713541415099170836/vote)')
 
             return await ctx.send(embed=embed)
 
