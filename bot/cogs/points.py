@@ -142,12 +142,17 @@ class Points(commands.Cog):
             embed.description = "You currently have an active point multiplier for hunting and epic events."
             embed.add_field(name='Multiplier', value=f'{boost_data.get("multiplier")}x')
             embed.add_field(name='Time Remaining', value=dur.in_words())
+            embed.add_field(name='How to Vote?', value='Vote for the server by visting '
+                                       '[this link](https://top.gg/servers/713541415099170836/vote)')
 
             return await ctx.send(embed=embed)
 
         return await ctx.send(embed=DefaultEmbed(ctx, title='No boosts found',
                                                  description='You do not have an active point boost.'
-                                                            ' You can get one by voting for the server'))
+                                                            ' You can get one by voting for the server').add_field(
+            name='How to Vote?', value='Vote for the server by visting '
+                                       '[this link](https://top.gg/servers/713541415099170836/vote)'
+        ))
 
 
 def setup(bot):

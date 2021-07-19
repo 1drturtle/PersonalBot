@@ -324,6 +324,10 @@ class Tracker(commands.Cog):
             # epic hook (points)
             await self.epic_hook(msg.author, msg.guild, epic_cmd)
 
+    @commands.Cog.listener(name='on_member_remove')
+    async def optin_remover(self, member):
+        await self.redis.srem(f'opted-{self.env}', str(member.id))
+
     @commands.group(name='stats', aliases=['s'], invoke_without_command=True)
     @commands.cooldown(3, 15, commands.BucketType.user)
     @commands.guild_only()
