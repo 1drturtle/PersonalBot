@@ -98,12 +98,12 @@ class Leaderboard(commands.Cog):
             embed.add_field(
                 name='Hunts (top 3, weekly)',
                 value='\n'.join([f'**#{i+1}**. {list(pair.keys())[0]} - {list(pair.values())[0]} hunts'
-                                for i, pair in enumerate(self.leaderboards['hunt_weekly'])]) or 'No data.'
+                                for i, pair in enumerate(self.leaderboards['hunt_weekly'])[:3]]) or 'No data.'
             )
             embed.add_field(
                 name='Epic Events (top 3, weekly)',
-                value='\n'.join([f'**#{i + 1}**. {list(pair.keys())[0]} - {list(pair.values())[0]} hunts'
-                                 for i, pair in enumerate(self.leaderboards['epic_weekly'])]) or 'No data.'
+                value='\n'.join([f'**#{i + 1}**. {list(pair.keys())[0]} - {list(pair.values())[0]} epic events'
+                                 for i, pair in enumerate(self.leaderboards['epic_weekly'])[:3]]) or 'No data.'
             )
             # number of people who got hunt roles
 
