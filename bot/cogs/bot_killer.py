@@ -8,7 +8,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
-BOT_PERCENT = 0.01
+BOT_PERCENT = 0.015
 
 
 class BotKiller(commands.Cog):
