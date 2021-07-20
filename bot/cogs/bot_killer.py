@@ -25,7 +25,7 @@ class BotKiller(commands.Cog):
             data = {
                 'deltas': [],
                 'last_delta': now,
-                'hunt_count': 1,
+                'hunt_count': 0,
                 '_id': user.id
             }
             return await self.db.insert_one(data)
