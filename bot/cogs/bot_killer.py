@@ -2,8 +2,9 @@ import time as t
 
 import discord
 from discord.ext import commands
-from utils.constants import DEV_CHANNEL_NAME
-from utils.embeds import DefaultEmbedMessage
+from utils.constants import DEV_CHANNEL_NAME, MOD_OR_ADMIN
+from utils.converters import MemberOrId
+from utils.embeds import DefaultEmbedMessage, SuccessEmbed
 import logging
 
 log = logging.getLogger(__name__)
@@ -31,6 +32,9 @@ class BotKiller(commands.Cog):
             }
             return await self.db.insert_one(data)
 
+        if data.get('whitelist', False):
+            return
+
         data['deltas'].append(round(now - data['last_delta'], 2))
         data['last_delta'] = now
         data['hunt_count'] = data.get('hunt_count') + 1
@@ -46,9 +50,6 @@ class BotKiller(commands.Cog):
         )
 
     async def run_bot_check(self, user: discord.Member, data: dict):
-
-        if data.get('whitelist', False):
-            return
 
         # check last ten averages and see how similar they are to each other.
         last_ten = data.get('deltas')[-10:]
@@ -66,6 +67,7 @@ class BotKiller(commands.Cog):
 
         if amount_within_bot > 7:
             log.debug('possible bot found, logging')
+
             serv = self.bot.get_guild(self.bot.config.GUILD_ID)
             ch = discord.utils.find(lambda c: c.name == DEV_CHANNEL_NAME, serv.channels)
             embed = DefaultEmbedMessage(self.bot, title='Possible Bot Detected!',
@@ -74,12 +76,45 @@ class BotKiller(commands.Cog):
             embed.add_field(name='Percent Deltas', value=', '.join([str(x) for x in percents]))
             embed.add_field(name='Amount below threshold', value=amount_within_bot)
             embed.add_field(name='Time Elapsed Between Hunts', value=', '.join([str(x) for x in last_ten]))
-            embed.add_field(name='Alert Count', value=f'#{data.get("alert_count", 1)}')
-            embed.add_field(name='Culprit', value=user.mention, inline=False)
-
-            await self.db.update_one({'_id': user.id}, {'$inc': {'alert_count': 1}})
+            if data.get('flag', False):
+                embed.add_field(name='User Flagged!',
+                                value='User has been flagged for suspicious activity in the past.')
+            embed.add_field(name='Culprit', value=f'{user.mention} ({user.id})', inline=False)
 
             return await ch.send(embed=embed)
+
+    @commands.group(name='bk', hidden=True, invoke_without_command=True)
+    @commands.check_any(*MOD_OR_ADMIN)
+    async def killer(self, ctx):
+        """Base command for bot-killer functions."""
+
+        return await ctx.send_help(self.killer)
+
+    @killer.group(name='whitelist', aliases=['wl'])
+    @commands.check_any(*MOD_OR_ADMIN)
+    async def killer_whitelist(self, ctx, who: MemberOrId):
+        """Whitelist a user from bot-killer functions."""
+        await self.db.update_one({"_id": who.id}, {"$set": {"whitelist": True}})
+        return await ctx.send(
+            embed=SuccessEmbed(
+                ctx,
+                title='User Whitelisted',
+                description=f'`{who.name}#{who.discriminator}` has been added to the bot-killer whitelist.'
+            )
+        )
+
+    @killer.command(name='flag')
+    @commands.check_any(*MOD_OR_ADMIN)
+    async def killer_flag(self, ctx, who: MemberOrId):
+        """Flag a user as suspicious in the database."""
+        await self.db.update_one({"_id": who.id}, {"$set": {"flag": True}})
+        return await ctx.send(
+            embed=SuccessEmbed(
+                ctx,
+                title='User Flagged',
+                description=f'`{who.name}#{who.discriminator}` has been added to the bot-killer flag list.'
+            )
+        )
 
 
 def setup(bot):
