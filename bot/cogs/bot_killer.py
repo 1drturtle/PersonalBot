@@ -45,6 +45,10 @@ class BotKiller(commands.Cog):
         )
 
     async def run_bot_check(self, user: discord.Member, data: dict):
+
+        if data.get('whitelist', False):
+            return
+
         # check last ten averages and see how similar they are to each other.
         last_ten = data.get('deltas')[-10:]
         last_value = last_ten.pop(0)
