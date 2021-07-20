@@ -26,6 +26,7 @@ class BotKiller(commands.Cog):
                 'deltas': [],
                 'last_delta': now,
                 'hunt_count': 0,
+                'alert_count': 0,
                 '_id': user.id
             }
             return await self.db.insert_one(data)
@@ -73,7 +74,10 @@ class BotKiller(commands.Cog):
             embed.add_field(name='Percent Deltas', value=', '.join([str(x) for x in percents]))
             embed.add_field(name='Amount below threshold', value=amount_within_bot)
             embed.add_field(name='Time Elapsed Between Hunts', value=', '.join([str(x) for x in last_ten]))
+            embed.add_field(name='Alert Count', value=f'#{data.get("alert_count", 1)}')
             embed.add_field(name='Culprit', value=user.mention, inline=False)
+
+            await self.db.update_one({'_id': user.id}, {'$inc': {'alert_count': 1}})
 
             return await ch.send(embed=embed)
 
