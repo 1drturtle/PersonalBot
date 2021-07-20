@@ -8,7 +8,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
-BOT_PERCENT = 0.02
+BOT_PERCENT = 0.015
 
 
 class BotKiller(commands.Cog):
@@ -59,7 +59,7 @@ class BotKiller(commands.Cog):
             percents.append(round(percent, 3))
             last_value = v
 
-        if amount_within_bot > 5:
+        if amount_within_bot > 7:
             log.debug('possible bot found, logging')
             serv = self.bot.get_guild(self.bot.config.GUILD_ID)
             ch = discord.utils.find(lambda c: c.name == DEV_CHANNEL_NAME, serv.channels)
