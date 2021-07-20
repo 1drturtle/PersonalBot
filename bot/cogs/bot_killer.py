@@ -72,6 +72,7 @@ class BotKiller(commands.Cog):
                                                     ' The rest of these numbers are specialized details.')
             embed.add_field(name='Percent Deltas', value=', '.join([str(x) for x in percents]))
             embed.add_field(name='Amount below threshold', value=amount_within_bot)
+            embed.add_field(name='Time Elapsed Between Hunts', value=', '.join([str(x) for x in last_ten]))
             embed.add_field(name='Culprit', value=user.mention, inline=False)
 
             return await ch.send(embed=embed)
