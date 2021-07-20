@@ -33,6 +33,7 @@ ROLE_MILESTONES = {
 }
 
 EPIC_EVENTS_CHANNEL_NAME = '🐟╏epic🎺events🪓'
+DEV_CHANNEL_NAME = '🔬・dev-testing'
 
 EPIC_EVENTS_POINTS = {
     'ultra bait': 5,

@@ -258,8 +258,6 @@ class Tracker(commands.Cog):
             return None
 
         str_id = f'redis-tracked-{self.env}-{msg.guild.id}:{str(msg.author.id)}'
-        if not await self.redis.sismember(f'opted-{self.env}', str(msg.author.id)):
-            return None
 
         cmd = msg.content.lower().lstrip('rpg ')
         epic_cmd = cmd.strip().lstrip('use').strip()
@@ -268,6 +266,13 @@ class Tracker(commands.Cog):
         time_stamp = time.format('YYYY-MM_DD_HH')
 
         if cmd in TRACKED_COMMANDS:
+
+            if 'BotKiller' in self.bot.cogs:
+                await self.bot.cogs['BotKiller'].run_hunt(msg.author)
+
+            if not await self.redis.sismember(f'opted-{self.env}', str(msg.author.id)):
+                return None
+
             def check(m):
                 if '**Your Horse**'.lower() in m.content.lower():
                     return False
@@ -311,6 +316,10 @@ class Tracker(commands.Cog):
                 return None
 
             cmd_id = str(EPIC_EVENTS[epic_cmd]['id'])
+
+            if not await self.redis.sismember(f'opted-{self.env}', str(msg.author.id)):
+                return None
+
             # add epic event
             await self.add_event(str_id, time_stamp, cmd_id)
 

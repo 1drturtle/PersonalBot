@@ -116,7 +116,7 @@ async def on_message(message):
 
 
 COGS = {'jishaku', 'cogs.error_handler', 'cogs.info', 'cogs.tracker', 'cogs.leaderboard', 'cogs.inventory',
-        'cogs.points', 'cogs.profile'}
+        'cogs.points', 'cogs.profile', 'cogs.bot_killer'}
 
 for cog in COGS:
     try:

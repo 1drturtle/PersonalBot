@@ -9,7 +9,7 @@ class DefaultEmbed(discord.Embed):
         super(DefaultEmbed, self).__init__(**kwargs)
         self.set_author(name=ctx.author.name, icon_url=ctx.author.avatar.url)
         self.set_footer(text=ctx.bot.user.name, icon_url=ctx.bot.user.avatar.url)
-        self.timestamp = datetime.datetime.utcnow()
+        self.timestamp = discord.utils.utcnow()
         self.set_thumbnail(url=RPG_ARMY_ICON)
 
         self.colour = random.randint(0, 0xffffff)
@@ -37,7 +37,7 @@ class DefaultEmbedMessage(discord.Embed):
     def __init__(self, bot, **kwargs):
         super().__init__(**kwargs)
         self.set_author(name=bot.user.name, icon_url=bot.user.avatar.url)
-        self.timestamp = datetime.datetime.utcnow()
+        self.timestamp = discord.utils.utcnow()
         self.set_thumbnail(url=RPG_ARMY_ICON)
 
         self.colour = random.randint(0, 0xffffff)
