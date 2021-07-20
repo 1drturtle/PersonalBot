@@ -144,7 +144,7 @@ class Points(commands.Cog):
                 embed.add_field(name='How to Vote?', value='Vote for the server by visting '
                                            '[this link](https://top.gg/servers/713541415099170836/vote)')
 
-            return await ctx.send(embed=embed)
+                return await ctx.send(embed=embed)
 
         return await ctx.send(embed=DefaultEmbed(ctx, title='No boosts found',
                                                  description='You do not have an active point boost.'
