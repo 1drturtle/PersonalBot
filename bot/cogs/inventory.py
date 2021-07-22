@@ -356,7 +356,7 @@ class Inventory(commands.Cog):
 
         return await ctx.send(embed=embed)
 
-    @inv.command(name='bypass')
+    @inv.command(name='bypass', aliases=['boost'])
     async def inv_boost(self, ctx):
         """Checks your current CD bypass and remaining time."""
         data = await self.cd_db.find_one({'_id': ctx.author.id})

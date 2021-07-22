@@ -153,6 +153,40 @@ class Points(commands.Cog):
                                        '[this link](https://top.gg/servers/713541415099170836/vote)'
         ))
 
+    @points.command(name='help', aliases=['h', '?'])
+    async def points_help(self, ctx):
+        """Shows information about points."""
+        embed = DefaultEmbed(ctx)
+        embed.title = 'Army Points - Help Page'
+        embed.description = f'Army Points are the main currency used by Turtle Bot. They can be used to buy items ' \
+                            f'from the shop (`{ctx.prefix}inv shop`)'
+        embed.add_field(
+            name='How do I get points?',
+            value=f'Points can be aquired via a few methods. The first method is by voting for the server. '
+                  f'When you vote for the server, you are given 10 points, and a 2x boost to your points for'
+                  f' the next six hours. This means, whenever you get points, you get twice as many while the boost '
+                  f'lasts.',
+            inline=False
+        )
+        embed.add_field(
+            name='Getting Points - Epic Events',
+            value='Whenever you spawn an epic event, you get a certain amount of Army Points.\n'
+                  'Ultra Bait - 5 points\n'
+                  'Epic Seed - 3 points\n'
+                  'Coin Trumpet - 1 point.',
+            inline=False
+        )
+        embed.add_field(
+            name='Getting Points - Hunting',
+            value='Every 100 hunts, you get an amount of Army Points depending on your currently weekly'
+                  ' hunt count. If you have less than 500 weekly hunts, you get one point. If you have more than 500, '
+                  'but less than 1000 weekly hunts, you get 2 points. If you have 1000 or more weekly hunts, you get'
+                  '3 points. This happens every 100 weekly hunts.',
+            inline=False
+        )
+
+        return await ctx.send(embed=embed)
+
 
 def setup(bot):
     bot.add_cog(Points(bot))
