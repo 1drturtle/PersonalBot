@@ -4,6 +4,7 @@ from datetime import timezone
 
 import discord
 import pendulum
+import pymongo
 from discord.ext import commands, tasks
 
 from utils.embeds import DefaultEmbed, SuccessEmbed, DefaultEmbedMessage
@@ -179,6 +180,28 @@ class Leaderboard(commands.Cog):
         embed.description = 'Weekly leaderboards reset on Monday at 00:00 (UTC).'
         next_reset = pendulum.now(tz=pendulum.UTC).next(pendulum.MONDAY)
         embed.description += f'\nNext reset: <t:{next_reset.int_timestamp}:R>'
+
+        return await ctx.send(embed=embed)
+
+    @leaderboards.command(name='points', hidden=True)
+    @commands.check_any(commands.is_owner(), commands.has_role('Staff'))
+    async def leaderboards_points(self, ctx):
+        """Shows the top ten points in the server."""
+        # get points data
+        data = await self.bot.mdb['points'].find().sort('points', pymongo.DESCENDING).limit(10).to_list(None)
+        embed = DefaultEmbed(
+            ctx,
+            title='Points Leaderboard'
+        )
+        out = []
+        for i, item in enumerate(data):
+            member = ctx.guild.get_member(item.get('_id'))
+            out.append(f'**#{i+1}.** {member} - {item.get("points")} points')
+
+        embed.add_field(
+            name='Top 10 points',
+            value='\n'.join(out)
+        )
 
         return await ctx.send(embed=embed)
 
