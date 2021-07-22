@@ -354,7 +354,17 @@ class Inventory(commands.Cog):
             upsert=True
         )
 
-        return await ctx.send(embed=embed)
+        ch = discord.utils.find(lambda n: n.name == EPIC_EVENTS_CHANNEL_NAME, ctx.guild.channels)
+        overwrites = ch.overwrites
+        u = ctx.author
+
+        perms = overwrites.get(u, discord.PermissionOverwrite())
+        perms.update(manage_messages=True)
+        overwrites.update({u: perms})
+
+        await ch.edit(overwrites=overwrites)
+
+        await ctx.send(embed=embed)
 
     @inv.command(name='bypass', aliases=['boost'])
     async def inv_boost(self, ctx):
@@ -366,7 +376,7 @@ class Inventory(commands.Cog):
             )
 
         embed = DefaultEmbed(ctx, title='Epic CD Bypass Info', description='Here is when your current bypass will end.'
-                                                                           '\nBuying a new bypass will **overwrite** '
+                                                                           '\nUsing a new bypass will **overwrite** '
                                                                            'your current bypass, not extend it.')
         embed.add_field(name='End Time', value=f'<t:{data.get("end_time")}:R>')
 
@@ -396,6 +406,7 @@ class Inventory(commands.Cog):
                     overwrites.pop(u)
 
                 await self.cd_db.delete_one({'_id': u.id})
+                log.debug(f'removing epic cd bypass for {u}')
 
         await ch.edit(overwrites=overwrites)
 
