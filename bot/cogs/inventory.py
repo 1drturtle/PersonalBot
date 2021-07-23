@@ -136,6 +136,10 @@ class Inventory(commands.Cog):
             '_id': who.id
         })
 
+        for k, v in data.copy().items():
+            if v == 0:
+                del data[k]
+
         if data:
             data.pop('_id')
 
@@ -292,6 +296,11 @@ class Inventory(commands.Cog):
         )
         embed.add_field(
             name='New Items', value=f'**{item_inst}** (+{amount})'
+        )
+        embed.add_field(
+            name='How to Use',
+            value=f'You can check your items with `{ctx.prefix}inv`, and can use the item with `{ctx.prefix}inv use'
+                  f' <item_name>`'
         )
 
         return await ctx.send(embed=embed)
