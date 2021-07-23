@@ -280,7 +280,8 @@ class Inventory(commands.Cog):
         # add items
         await self.db.update_one(
             {'_id': ctx.author.id},
-            {'$inc': {item_inst.name: amount}}
+            {'$inc': {item_inst.name: amount}},
+            upsert=True
         )
 
         # send output
