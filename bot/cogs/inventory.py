@@ -77,16 +77,21 @@ class Inventory(commands.Cog):
 
         self.cd_db = self.bot.mdb['epic_cd']
         self.epic_cd_checker.start()
+        self.temp_ga_role_checker.start()
 
         self.db = self.bot.mdb['inventory']
         self.items_db = self.bot.mdb['items']
         self.items = {}
         self.item_mapping = {
             'temp_role': self.run_temp_perms,
+            'temp_ga': self.run_ga_role,
             'xp': self.run_xp
         }
 
         self.bot.loop.run_until_complete(self.load_items())
+
+    async def cog_check(self, ctx):
+        return getattr(ctx.guild, 'id', 0) in self.bot.whitelist
 
     def cog_unload(self):
         self.epic_cd_checker.stop()
@@ -175,7 +180,7 @@ class Inventory(commands.Cog):
         inv = await self.load_inventory(ctx.author)
         items: typing.List[str] = []
         for item_name, item_count in inv.items():
-            item = self.items[item_name]
+            item = self.items[item_name.lower()]
             items.append(f'`{item_count:02d}x -` **{item}**')
         embed.add_field(
             name='Items',
@@ -206,11 +211,13 @@ class Inventory(commands.Cog):
         embed.title = 'Server Item List'
         out = []
         for _, item in self.items.items():
-            out.append(f"- **{item}**: {item.desc}")
+            out.append(f"**{item}**: {item.desc}")
 
         embed.description = ('\n'.join(out) or 'No items in database.')
         embed.add_field(name='How to Buy', value=f'You can buy an item with '
                                                  f'`{self.bot.config.PREFIX}inv buy <item name>`.')
+        embed.add_field(name='Shortcuts', value=f"Want to type a shorter name?"
+                                                f" Checkout `{ctx.prefix}inv aliases`")
         embed.set_thumbnail(url=RPG_ARMY_ICON)
         return await ctx.send(embed=embed)
 
@@ -376,21 +383,33 @@ class Inventory(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @inv.command(name='bypass', aliases=['boost'])
-    async def inv_boost(self, ctx):
-        """Checks your current CD bypass and remaining time."""
-        data = await self.cd_db.find_one({'_id': ctx.author.id})
-        if not data:
-            return await ctx.send(
-                embed=ErrorEmbed(ctx, title='No bypass found', description='You do not have an active epic cd bypass.')
-            )
+    async def run_ga_role(self, ctx, item: Item):
+        # item: effects {duration: int(hours), role_id: int}
 
-        embed = DefaultEmbed(ctx, title='Epic CD Bypass Info', description='Here is when your current bypass will end.'
-                                                                           '\nUsing a new bypass will **overwrite** '
-                                                                           'your current bypass, not extend it.')
-        embed.add_field(name='End Time', value=f'<t:{data.get("end_time")}:R>')
+        embed = DefaultEmbed(
+            ctx,
+            title='GA Extra Entries Activated!'
+        )
 
-        return await ctx.send(embed=embed)
+        now = round(time.time())
+        later = now + (60 * 60 * item.effects['duration'])
+
+        await self.bot.mdb['ga_db'].update_one(
+            {'_id': f'{ctx.author.id}-{item.effects.get("role_id")}'},
+            {'$set': {'end_time': later}},
+            upsert=True
+        )
+
+        role = ctx.guild.get_role(item.effects.get('role_id'))
+        await ctx.author.add_roles(role, reason="Item bought in shop.")
+
+        embed.add_field(name='Total Duration', value=f'{item.effects["duration"]} hour(s)')
+        embed.add_field(name='End Time', value=f'<t:{later}:R>')
+        embed.add_field(name='Role Acquired', value=f'You have been given the role: <@&{item.effects["role_id"]}>')
+
+        await ctx.send(embed=embed)
+
+        return 1
 
     # noinspection PyTypeChecker
     @tasks.loop(minutes=1)
@@ -425,6 +444,42 @@ class Inventory(commands.Cog):
         await self.bot.wait_until_ready()
         await asyncio.sleep(1)
         log.info('Epic Event CD checker started')
+
+    @tasks.loop(minutes=3)
+    async def temp_ga_role_checker(self):
+        """remove GA roles after expiration date"""
+        data = await self.bot.mdb['ga_db'].find().to_list(None)
+        guild = self.bot.get_guild(self.bot.config.GUILD_ID)
+        now = round(time.time())
+
+        for item in data:
+            member_id, role_id = item.get('_id').split('-')
+            member_id, role_id = int(member_id), int(role_id)
+            role = guild.get_role(role_id)
+
+            if not now > item.get('end_time'):
+                continue
+
+            member = guild.get_member(member_id)
+            await member.remove_roles(role, reason='Role Expired.')
+            log.debug(f'removing @{role.name} from {member}')
+            await self.bot.mdb['ga_db'].delete_one({'_id': item.get('_id')})
+
+    @temp_ga_role_checker.before_loop
+    async def temp_ga_role_before(self):
+        await self.bot.wait_until_ready()
+        await asyncio.sleep(1)
+        log.info('Temp GA role checker started')
+
+    @inv.command(name='reload')
+    @commands.is_owner()
+    async def inv_reload_items(self, ctx):
+
+        await self.load_items()
+        try:
+            await ctx.message.add_reaction(':thumbsup:')
+        except:
+            await ctx.send('items reloaded')
 
 
 def setup(bot):

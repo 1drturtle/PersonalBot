@@ -122,37 +122,6 @@ class Points(commands.Cog):
 
         return await ctx.send(embed=embed)
 
-    @points.command(name='boosts', aliases=['boost', 'b'])
-    async def points_boost(self, ctx):
-        """Shows your current point boost status."""
-
-        boost_data = await self.bot.mdb['point_boost'].find_one({'_id': ctx.author.id})
-
-        if boost_data:
-            now = pendulum.now(tz=pendulum.UTC)
-            prev = pendulum.from_timestamp(boost_data.get('end_time'))
-            dur = prev - now
-
-            if dur.total_seconds() < 0:
-                await self.bot.mdb['point_boost'].delete_one({'_id': ctx.author.id})
-            else:
-                embed = DefaultEmbed(ctx)
-                embed.title = 'Active Point Boost'
-                embed.description = "You currently have an active point multiplier for hunting and epic events."
-                embed.add_field(name='Multiplier', value=f'{boost_data.get("multiplier")}x')
-                embed.add_field(name='Time Remaining', value=dur.in_words())
-                embed.add_field(name='How to Vote?', value='Vote for the server by visting '
-                                           '[this link](https://top.gg/servers/713541415099170836/vote)')
-
-                return await ctx.send(embed=embed)
-
-        return await ctx.send(embed=DefaultEmbed(ctx, title='No boosts found',
-                                                 description='You do not have an active point boost.'
-                                                            ' You can get one by voting for the server').add_field(
-            name='How to Vote?', value='Vote for the server by visting '
-                                       '[this link](https://top.gg/servers/713541415099170836/vote)'
-        ))
-
     @points.command(name='help', aliases=['h', '?'])
     async def points_help(self, ctx):
         """Shows information about points."""
@@ -184,6 +153,55 @@ class Points(commands.Cog):
                   '3 points. This happens every 100 weekly hunts.',
             inline=False
         )
+
+        return await ctx.send(embed=embed)
+
+    @commands.command(name='boosts', aliases=['boost'])
+    async def all_boosts(self, ctx):
+        """Shows all of your active items and boosts."""
+        embed = DefaultEmbed(
+            ctx,
+            title=f"{ctx.author.name}'s boosts"
+        )
+        # point boost
+        point_data = await self.bot.mdb['point_boost'].find_one({'_id': ctx.author.id})
+        if point_data:
+            now = pendulum.now(tz=pendulum.UTC)
+            prev = pendulum.from_timestamp(point_data.get('end_time'))
+            dur = prev - now
+
+            if dur.total_seconds() < 0:
+                await self.bot.mdb['point_boost'].delete_one({'_id': ctx.author.id})
+            else:
+                embed.add_field(
+                    name='Point Boost',
+                    value=f'Active Point Boost found!\n'
+                          f'**Multiplier:** {point_data.get("multiplier")}x\n'
+                          f'**Remaining Time:** {dur.in_words()}'
+                )
+        # epic cd bypass
+        cd_data = await self.bot.mdb['epic_cd'].find_one({'_id': ctx.author.id})
+        if cd_data:
+            embed.add_field(
+                name='Epic Epic Slow-mode Bypass',
+                value='Active slow-mode bypass found!\n'
+                      f'**End Time:** <t:{cd_data.get("end_time")}:R>'
+            )
+        # extra GA role
+        ga_roles = await self.bot.mdb['ga_db'].find({'_id': {'$regex': rf'{ctx.author.id}-(\d+)'}}).to_list(None)
+        for item in ga_roles:
+            _, role_id = item.get('_id').split('-')
+            role_id = int(role_id)
+            role = ctx.guild.get_role(role_id)
+            embed.add_field(
+                name='GA Role - Extra Entries',
+                value='GA Role Found!\n'
+                      f'**Role:** {role.mention}\n'
+                      f'**End Time:** <t:{item.get("end_time")}:R>'
+            )
+
+        if len(embed.fields) == 0:
+            embed.description = 'No boosts found. Buy and activate an item from the shop!'
 
         return await ctx.send(embed=embed)
 
