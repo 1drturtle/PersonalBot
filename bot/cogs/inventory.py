@@ -139,14 +139,14 @@ class Inventory(commands.Cog):
         """
         data = await self.db.find_one({
             '_id': who.id
-        })
+        }) or {}
+
+        if data:
+            data.pop('_id')
 
         for k, v in data.copy().items():
             if v == 0:
                 del data[k]
-
-        if data:
-            data.pop('_id')
 
         return data or {}
 
