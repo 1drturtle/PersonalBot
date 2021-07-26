@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 from utils.constants import DEV_CHANNEL_NAME, MOD_OR_ADMIN
 from utils.converters import MemberOrId
-from utils.embeds import DefaultEmbedMessage, SuccessEmbed
+from utils.embeds import DefaultEmbedMessage, SuccessEmbed, ErrorEmbed, DefaultEmbed
 import logging
 
 log = logging.getLogger(__name__)
@@ -68,6 +68,8 @@ class BotKiller(commands.Cog):
         if amount_within_bot > 7:
             log.debug('possible bot found, logging')
 
+            previous = await self.bot.mdb['bot_killer_events'].find({'_id': user.id}).to_list(None)
+
             serv = self.bot.get_guild(self.bot.config.GUILD_ID)
             ch = discord.utils.find(lambda c: c.name == DEV_CHANNEL_NAME, serv.channels)
             embed = DefaultEmbedMessage(self.bot, title='Possible Bot Detected!',
@@ -79,7 +81,19 @@ class BotKiller(commands.Cog):
             if data.get('flag', False):
                 embed.add_field(name='User Flagged!',
                                 value='User has been flagged for suspicious activity in the past.')
+            if previous:
+                embed.add_field(name='Previous Events', value=f'User has had {len(previous)} previous event(s)')
             embed.add_field(name='Culprit', value=f'{user.mention} ({user.id})', inline=False)
+
+            # log event to db
+            await self.bot.mdb['bot_killer_events'].insert_one(
+                {
+                    '_id': user.id,
+                    'amount_below': amount_within_bot,
+                    'thresholds': percents,
+                    'deltas': last_ten
+                }
+            )
 
             return await ch.send(embed=embed)
 
