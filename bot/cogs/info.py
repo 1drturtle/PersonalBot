@@ -5,6 +5,7 @@ import pendulum
 
 
 class Info(commands.Cog):
+    """Basic commands for the bot."""
     def __init__(self, bot):
         self.bot = bot
 

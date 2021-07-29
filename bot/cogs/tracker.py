@@ -11,7 +11,7 @@ import pymongo.errors
 import ujson
 from discord.ext import commands
 
-from utils.constants import MOD_OR_ADMIN, TRACKED_COMMANDS, EPIC_EVENTS, ROLE_MILESTONES
+from utils.constants import TRACKED_COMMANDS, EPIC_EVENTS, ROLE_MILESTONES, owner_or_mods
 from utils.converters import MemberOrId
 from utils.embeds import *
 from utils.functions import is_yes, send_dm
@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 
 
 class Tracker(commands.Cog):
+    """Cog that handles hunt tracking"""
     def __init__(self, bot):
         self.bot = bot
         self.redis = self.bot.redis_db
@@ -463,9 +464,9 @@ class Tracker(commands.Cog):
 
         return await ctx.send(embed=embed)
 
-    @tracked_stats.command(name='items', aliases=['i'], hidden=True)
+    @tracked_stats.command(name='items', aliases=['i'])
+    @owner_or_mods()
     @commands.cooldown(3, 15, commands.BucketType.user)
-    @commands.check_any(*MOD_OR_ADMIN)
     async def tracked_items(self, ctx, who: typing.Optional[MemberOrId] = None, hours: int = 12):
         """Shows how many items you have dropped in the last `hours`"""
 
@@ -506,7 +507,7 @@ class Tracker(commands.Cog):
 
         return await ctx.send(embed=embed)
 
-    @tracked_stats.command(name='whitelist', hidden=True)
+    @tracked_stats.command(name='whitelist')
     @commands.is_owner()
     async def whitelist(self, ctx, guild_id: int):
         """whitelist a server to track hunts"""
@@ -525,10 +526,11 @@ class Tracker(commands.Cog):
 
         return await ctx.send(f'guild `{guild}` added to whitelist.')
 
-    @tracked_stats.command(name='admin', hidden=True)
-    @commands.check_any(*MOD_OR_ADMIN)
+    @tracked_stats.command(name='admin')
+    @owner_or_mods()
     async def admin_stats(self, ctx):
-        """Shows stats about the bot. Requires the Moderator or Admin role."""
+        """Shows stats about the bot.
+        Requires the Moderator or Admin role."""
         embed = DefaultEmbed(ctx)
         embed.title = 'Owner Debug Stats'
 
@@ -556,7 +558,7 @@ class Tracker(commands.Cog):
 
         return await ctx.send(embed=embed)
 
-    @tracked_stats.command(name='overwrite', hidden=True)
+    @tracked_stats.command(name='overwrite')
     @commands.is_owner()
     async def owner_overwrite(self, ctx, who: MemberOrId, time: str, event_type: int, amount: int):
         """
@@ -592,7 +594,7 @@ class Tracker(commands.Cog):
                                )
         )
 
-    @tracked_stats.command(name='lbadd', hidden=True)
+    @tracked_stats.command(name='lbadd')
     @commands.is_owner()
     async def owner_lb_add(self, ctx, who: MemberOrId, type_: str, amount: int):
         """

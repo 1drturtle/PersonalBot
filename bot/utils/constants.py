@@ -1,7 +1,22 @@
 from discord.ext import commands
+import discord
 
 RPG_ARMY_ICON = 'https://cdn.discordapp.com/icons/713541415099170836/83b34dda4bedd3d37de2ee666ff526c3.webp?size=1024'
 MOD_OR_ADMIN = [commands.is_owner(), commands.has_role('Admin'), commands.has_role('Moderator')]
+
+
+def owner_or_mods():
+    async def predicate(ctx):
+        if await ctx.bot.is_owner(ctx.author):
+            return True
+        if not ctx.guild:
+            raise commands.NoPrivateMessage
+        if discord.utils.find(lambda r: r.name in ['Admin', 'Moderator'], ctx.author.roles):
+            return True
+        return False
+
+    return commands.check(predicate)
+
 
 TRACKED_COMMANDS = {
     'hunt together': 1,

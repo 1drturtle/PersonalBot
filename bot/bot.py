@@ -81,7 +81,7 @@ logging.getLogger('asyncio').setLevel(logging.WARNING)
 
 intents = discord.Intents(guilds=True, members=True, messages=True)
 
-description = 'Personal Bot developed by Dr Turtle#1771'
+description = 'Bot developed for RPG army, designed to track ERPG hunts and epic events.'
 
 bot = MyBot(desc=description, intents=intents, allowed_mentions=discord.AllowedMentions.none(),
             command_prefix=commands.when_mentioned_or(config.PREFIX))
@@ -107,7 +107,7 @@ async def on_message(message):
     if not bot.is_ready():
         return
 
-    if 'jsk' not in message.content:
+    if 'jsk' not in message.content and 'help' not in message.content:
         message.content = message.content.lower()
 
     context = await bot.get_context(message)
@@ -116,7 +116,7 @@ async def on_message(message):
 
 
 COGS = {'jishaku', 'cogs.error_handler', 'cogs.info', 'cogs.tracker', 'cogs.leaderboard', 'cogs.inventory',
-        'cogs.points', 'cogs.profile', 'cogs.bot_killer'}
+        'cogs.points', 'cogs.profile', 'cogs.bot_killer', 'cogs.help'}
 
 for cog in COGS:
     try:

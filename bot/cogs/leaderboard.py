@@ -17,6 +17,7 @@ log = logging.getLogger(__name__)
 
 
 class Leaderboard(commands.Cog):
+    """Handles the leaderboard for hunts and epic events."""
     def __init__(self, bot):
         self.bot = bot
         self.redis = self.bot.redis_db
@@ -183,7 +184,7 @@ class Leaderboard(commands.Cog):
 
         return await ctx.send(embed=embed)
 
-    @leaderboards.command(name='points', hidden=True)
+    @leaderboards.command(name='points')
     @commands.check_any(commands.is_owner(), commands.has_role('Staff'))
     async def leaderboards_points(self, ctx):
         """Shows the top ten points in the server."""
@@ -205,7 +206,7 @@ class Leaderboard(commands.Cog):
 
         return await ctx.send(embed=embed)
 
-    @leaderboards.command(name='reset', hidden=True)
+    @leaderboards.command(name='reset')
     @commands.check_any(commands.is_owner(), commands.has_role('Admin'))
     async def leaderboards_reset(self, ctx):
         """Resets the weekly leaderboards. Requires the Admin role."""
@@ -231,7 +232,7 @@ class Leaderboard(commands.Cog):
             )
         )
 
-    @leaderboards.command(name='update', hidden=True)
+    @leaderboards.command(name='update')
     @commands.check_any(commands.is_owner(), commands.has_role('Admin'))
     async def updatelb(self, ctx):
         await self.update_leaderboard.__call__()

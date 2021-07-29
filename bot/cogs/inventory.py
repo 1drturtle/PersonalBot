@@ -70,6 +70,7 @@ class Item:
 
 
 class Inventory(commands.Cog):
+    """Handles the inventory and shop."""
     def __init__(self, bot):
         self.bot = bot
 

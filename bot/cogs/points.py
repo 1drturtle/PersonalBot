@@ -15,6 +15,7 @@ log = logging.getLogger(__name__)
 
 
 class Points(commands.Cog):
+    """Cog that handles Army Points."""
     def __init__(self, bot):
         self.bot = bot
         self.db = self.bot.mdb['points']
