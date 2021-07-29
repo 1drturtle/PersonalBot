@@ -62,6 +62,8 @@ class MyHelp(commands.HelpCommand):
                 )
         embed.add_field(name='More Info', value='To see more information about a specific category, click it\'s button'
                                                 ' below. The buttons will expire after 30 seconds.')
+        embed.description = f'Welcome to TurtleBot! To get started (if you haven\'t already), use `tb!optin` to sign' \
+                            f'-up, and then use `tb!stats` to see your stats.'
         view = BotView(cogs, self)
         dest = self.get_destination()
         return await dest.send(embed=embed, view=view)
@@ -118,4 +120,7 @@ class MyHelp(commands.HelpCommand):
 
 
 def setup(bot):
-    bot.help_command = MyHelp()
+    command_attrs = {
+        'aliases': ['?', 'h']
+    }
+    bot.help_command = MyHelp(command_attrs=command_attrs)

@@ -104,7 +104,8 @@ class Points(commands.Cog):
     @commands.group(name='points', invoke_without_command=True)
     async def points(self, ctx, who: typing.Optional[MemberOrId]):
         """Shows the amount of points you have. Points can be used to buy items in the shop.
-        You can get points by spawning epic events. (WIP)"""
+        You can get points by spawning epic events.
+        See `tb!points help` for more information"""
 
         if not who:
             who = ctx.author
