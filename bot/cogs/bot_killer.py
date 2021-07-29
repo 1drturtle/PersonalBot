@@ -88,7 +88,7 @@ class BotKiller(commands.Cog):
             # log event to db
             await self.bot.mdb['bot_killer_events'].insert_one(
                 {
-                    '_id': user.id,
+                    'uid': user.id,
                     'amount_below': amount_within_bot,
                     'thresholds': percents,
                     'deltas': last_ten

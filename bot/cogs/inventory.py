@@ -197,6 +197,8 @@ class Inventory(commands.Cog):
         embed.title = 'Server Item Shop'
         out = []
         for _, item in self.items.items():
+            if item.effects.get('shop_hide'):
+                continue
             out.append(f"- **{item}**: {item.cost} points")
 
         embed.description = ('\n'.join(out) or 'No items in database.')
@@ -246,6 +248,10 @@ class Inventory(commands.Cog):
 
         # find our item object from names or aliases
         item_inst = self.find_item(item_name)
+        if item_inst.effects.get('shop_hide'):
+            return await ctx.send(
+                embed=ErrorEmbed(ctx, title='Cannot Buy Item', description='This item is not available for purchase.')
+            )
         if not item_inst:
             return await ctx.send(
                 embed=ErrorEmbed(ctx,
