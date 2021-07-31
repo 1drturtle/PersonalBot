@@ -252,16 +252,18 @@ class Inventory(commands.Cog):
 
         # find our item object from names or aliases
         item_inst = self.find_item(item_name)
-        if item_inst.effects.get('shop_hide'):
-            return await ctx.send(
-                embed=ErrorEmbed(ctx, title='Cannot Buy Item', description='This item is not available for purchase.')
-            )
+
         if not item_inst:
             return await ctx.send(
                 embed=ErrorEmbed(ctx,
                                  title='Item Not Found',
                                  description=f'Could not find an item with that name. '
                                              f'Check `{self.bot.config.PREFIX}inv items` for a list of all items.')
+            )
+
+        if item_inst.effects.get('shop_hide'):
+            return await ctx.send(
+                embed=ErrorEmbed(ctx, title='Cannot Buy Item', description='This item is not available for purchase.')
             )
 
         # grab our user's points
