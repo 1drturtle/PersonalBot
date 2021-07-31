@@ -86,7 +86,8 @@ class Inventory(commands.Cog):
         self.item_mapping = {
             'temp_role': self.run_temp_perms,
             'temp_ga': self.run_ga_role,
-            'xp': self.run_xp
+            'xp': self.run_xp,
+            'special': self.run_special
         }
 
         self.bot.loop.run_until_complete(self.load_items())
@@ -416,7 +417,25 @@ class Inventory(commands.Cog):
 
         await ctx.send(embed=embed)
 
-        return 1
+        return -1
+
+    async def run_special(self, ctx, item: Item):
+        # item: effect {special: unique str, duration int(hours)}
+        embed = DefaultEmbed(ctx, title='Special Item Activated!')
+        now = round(time.time())
+        later = now + (60 * 60 * item.effects['duration'])
+
+        await self.bot.mdb['special_db'].update_one(
+            {'_id': f'{ctx.author.id}-{item.effects.get("special")}'},
+            {'$set': {'end_time': later}},
+            upsert=True
+        )
+        embed.description = 'Your special event item has been activated!'
+        embed.add_field(name='Total Duration', value=f'{item.effects["duration"]} hour(s)')
+        embed.add_field(name='End Time', value=f'<t:{later}:R>')
+
+        await ctx.send(embed=embed)
+        return -1
 
     # noinspection PyTypeChecker
     @tasks.loop(minutes=1)
@@ -472,6 +491,14 @@ class Inventory(commands.Cog):
             log.debug(f'removing @{role.name} from {member}')
             await self.bot.mdb['ga_db'].delete_one({'_id': item.get('_id')})
 
+        # loop in special item
+        special = await self.bot.mdb['special_db'].find().to_list(None)
+        for special_item in special:
+            if not now > special_item.get('end_time'):
+                continue
+
+            await self.bot.mdb['special_db'].delete_one({'_id': special_item.get('_id')})
+
     @temp_ga_role_checker.before_loop
     async def temp_ga_role_before(self):
         await self.bot.wait_until_ready()
@@ -482,11 +509,9 @@ class Inventory(commands.Cog):
     @commands.is_owner()
     async def inv_reload_items(self, ctx):
 
+        self.items = {}
         await self.load_items()
-        try:
-            await ctx.message.add_reaction(':thumbsup:')
-        except:
-            await ctx.send('items reloaded')
+        await ctx.send('items reloaded')
 
 
 def setup(bot):

@@ -45,6 +45,23 @@ class Debug(commands.Cog):
 
         await ctx.send(embed=embed)
 
+    @commands.command(name='fixlock')
+    @commands.has_role(798727974886703165)
+    async def fix_locked(self, ctx):
+        """Fixes the Epic Event channel lock."""
+        ch = ctx.guild.get_channel(740291010483191827)
+        overwrites = ch.overwrites
+        r = ctx.guild.get_role(734123413731541002)
+        perms = overwrites.get(r, discord.PermissionOverwrite())
+        perms.update(send_messages=None)
+        overwrites.update({r: perms})
+        await ch.edit(overwrites=overwrites)
+        await ctx.send(embed=DefaultEmbed(
+            ctx,
+            title='Channel Permissions Fixed',
+            description=f'<#{ch.id}> has been unlocked.'
+        ))
+
 
 def setup(bot):
     bot.add_cog(Debug(bot))

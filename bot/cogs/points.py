@@ -40,6 +40,8 @@ class Points(commands.Cog):
             upsert=True
         )
 
+        return amount * multiplier
+
     async def epic_hook(self, author, guild, event_type: str):
 
         if guild.id not in self.bot.whitelist:
@@ -55,14 +57,21 @@ class Points(commands.Cog):
         if weekly is None:
             weekly = 0
 
-        if weekly % 100 == 0 and weekly != 0:
+        on_trigger = 100
+        # do we have a special item?
+        d = await self.bot.mdb['special_db'].find_one({'_id': f'{msg.author.id}-hunts'})
+        if d:
+            on_trigger = 15
+
+        if weekly % on_trigger == 0 and weekly != 0:
             # if our current hunt is a multiple of 100
             # add a point depending on the current weekly hunt count
             hunt_point = 1 + (weekly >= 500) + (weekly >= 1000)
-            await self.mod_points(msg.author.id, hunt_point)
+
+            h = await self.mod_points(msg.author.id, hunt_point)
             await msg.channel.send(embed=DefaultEmbedMessage(self.bot, title='Point Added!',
                                                              description=f'You reached {weekly} weekly hunts, and got '
-                                                                         f'{hunt_point} point(s).'))
+                                                                         f'{h} point(s).'))
 
     @commands.Cog.listener(name='on_message')
     async def vote_listener(self, msg):
@@ -199,6 +208,15 @@ class Points(commands.Cog):
                 name='GA Role - Extra Entries',
                 value='GA Role Found!\n'
                       f'**Role:** {role.mention}\n'
+                      f'**End Time:** <t:{item.get("end_time")}:R>'
+            )
+
+        # special item boost
+        special = await self.bot.mdb['special_db'].find({'_id': {'$regex': rf'{ctx.author.id}-(.+)'}}).to_list(None)
+        for item in special:
+            embed.add_field(
+                name='Special Item Boost',
+                value=f'Special Item Boost Found!\nThis item grants point milestones every 15 hunts instead of 100.\n'
                       f'**End Time:** <t:{item.get("end_time")}:R>'
             )
 
