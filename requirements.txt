@@ -3,7 +3,7 @@ git+https://github.com/Rapptz/discord.py
 
 # Database
 motor
-aioredis
+aioredis==1.3.1
 dnspython
 
 # Error Handling/Debugging
