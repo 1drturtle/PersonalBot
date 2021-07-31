@@ -1,14 +1,13 @@
+import asyncio
 import logging
+import time
 import typing
 
 import discord
-import pendulum
 from discord.ext import commands, tasks
 
 from utils.constants import RPG_ARMY_ICON, EPIC_EVENTS_CHANNEL_NAME
 from utils.embeds import DefaultEmbed, ErrorEmbed
-import asyncio
-import time
 
 log = logging.getLogger(__name__)
 
@@ -188,6 +187,8 @@ class Inventory(commands.Cog):
             name='Items',
             value='\n'.join(items) or 'No items found.'
         )
+        embed.add_field(name='How to Use', value='To use an item, run `tb!inv use <item name>`. Also, check '
+                                                 '`tb!inv aliases` for item name shortcuts.')
 
         return await ctx.send(embed=embed)
 
@@ -205,6 +206,8 @@ class Inventory(commands.Cog):
         embed.description = ('\n'.join(out) or 'No items in database.')
         embed.add_field(name='How to Buy', value=f'You can buy an item with '
                                                  f'`{self.bot.config.PREFIX}inv buy <item name>`.')
+        embed.add_field(name='Shortcuts', value=f"Want to type a shorter name?"
+                                                f" Checkout `{ctx.prefix}inv aliases`")
         embed.set_thumbnail(url=RPG_ARMY_ICON)
         return await ctx.send(embed=embed)
 
@@ -317,6 +320,8 @@ class Inventory(commands.Cog):
             value=f'You can check your items with `{ctx.prefix}inv`, and can use the item with `{ctx.prefix}inv use'
                   f' <item_name>`'
         )
+        embed.add_field(name='Shortcuts', value=f"Want to type a shorter name?"
+                                                f" Checkout `{ctx.prefix}inv aliases`")
 
         return await ctx.send(embed=embed)
 
@@ -371,7 +376,7 @@ class Inventory(commands.Cog):
         embed.add_field(name='Total Duration', value=f'{item.effects["duration"]} hour(s)')
         embed.add_field(name='End Time', value=f'<t:{later}:R>')
         embed.description = f'Your CD bypass item has been activated, starting now!\n' \
-                            f'Check your current boost status with {ctx.prefix}inv bypass'
+                            f'Check your current boost status with {ctx.prefix}boost'
 
         await self.cd_db.update_one(
             {'_id': ctx.author.id},
