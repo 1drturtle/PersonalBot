@@ -6,7 +6,7 @@ import typing
 import discord
 from discord.ext import commands, tasks
 
-from utils.constants import RPG_ARMY_ICON, EPIC_EVENTS_CHANNEL_NAME
+from utils.constants import RPG_ARMY_ICON, EPIC_EVENTS_CHANNEL_NAME, POINTS_EMOJI
 from utils.embeds import DefaultEmbed, ErrorEmbed
 
 log = logging.getLogger(__name__)
@@ -204,6 +204,14 @@ class Inventory(commands.Cog):
             out.append(f"- **{item}**: {item.cost} points")
 
         embed.description = ('\n'.join(out) or 'No items in database.')
+
+        points = await self.bot.mdb['points'].find_one({'_id': ctx.author.id})
+        points = points.get('points') or 0
+
+        embed.add_field(
+            name='Current Points', value=f'{POINTS_EMOJI} {points} army points'
+        )
+
         embed.add_field(name='How to Buy', value=f'You can buy an item with '
                                                  f'`{self.bot.config.PREFIX}inv buy <item name>`.')
         embed.add_field(name='Shortcuts', value=f"Want to type a shorter name?"
