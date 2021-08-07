@@ -268,6 +268,8 @@ class Tracker(commands.Cog):
 
         if cmd in TRACKED_COMMANDS:
 
+            cmd_id = str(TRACKED_COMMANDS[cmd])
+
             if 'BotKiller' in self.bot.cogs:
                 await self.bot.cogs['BotKiller'].run_hunt(msg.author)
 
@@ -279,6 +281,11 @@ class Tracker(commands.Cog):
                     return False
                 elif f'**{msg.author.name}** lost but'.lower() in m.content.lower():
                     return False
+                if f'**{msg.author.name}** found a'.lower() not in m.content.lower():
+                    return False
+                if int(cmd_id) in [2, 3]:  # hunt together
+                    if 'are hunting together' not in m.content.lower():
+                        return False
                 return m.channel.id == msg.channel.id and m.author.id == 555955826880413696 and \
                        len(m.embeds) == 0 and msg.author.name.lower() in m.content.lower()
 
@@ -286,8 +293,6 @@ class Tracker(commands.Cog):
                 bot_msg = await self.bot.wait_for('message', check=check, timeout=5)
             except TimeoutError:
                 return None
-
-            cmd_id = str(TRACKED_COMMANDS[cmd])
 
             # update hunt
             await self.add_event(str_id, time_stamp, cmd_id)
