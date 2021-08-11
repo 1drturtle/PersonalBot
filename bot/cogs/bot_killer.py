@@ -68,7 +68,7 @@ class BotKiller(commands.Cog):
         if amount_within_bot > 7:
             log.debug('possible bot found, logging')
 
-            previous = await self.bot.mdb['bot_killer_events'].find({'_id': user.id}).to_list(None)
+            previous = await self.bot.mdb['bot_killer_events'].find({'uid': user.id}).to_list(None)
 
             serv = self.bot.get_guild(self.bot.config.GUILD_ID)
             ch = discord.utils.find(lambda c: c.name == DEV_CHANNEL_NAME, serv.channels)
