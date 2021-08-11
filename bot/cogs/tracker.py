@@ -271,7 +271,7 @@ class Tracker(commands.Cog):
             cmd_id = str(TRACKED_COMMANDS[cmd])
 
             if 'BotKiller' in self.bot.cogs:
-                await self.bot.cogs['BotKiller'].run_hunt(msg.author)
+                await self.bot.cogs['BotKiller'].run_hunt(msg)
 
             if not await self.redis.sismember(f'opted-{self.env}', str(msg.author.id)):
                 return None

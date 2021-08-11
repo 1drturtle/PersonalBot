@@ -18,7 +18,8 @@ class BotKiller(commands.Cog):
         self.redis = self.bot.redis_db
         self.db = self.bot.mdb['bot_killer']
 
-    async def run_hunt(self, user: discord.Member):
+    async def run_hunt(self, msg: discord.Message):
+        user = msg.author
         now = t.time()
         # get data
         data = await self.db.find_one({'_id': user.id})
@@ -42,14 +43,15 @@ class BotKiller(commands.Cog):
         log.debug(f'running bot check {user}\n{data!r}')
         if data['hunt_count'] % 10 == 0:
             log.debug('eagle eye on')
-            await self.run_bot_check(user, data)
+            await self.run_bot_check(msg, data)
 
         await self.db.update_one(
             {'_id': user.id},
             {'$set': data}
         )
 
-    async def run_bot_check(self, user: discord.Member, data: dict):
+    async def run_bot_check(self, msg: discord.Message, data: dict):
+        user = msg.author
 
         # check last ten averages and see how similar they are to each other.
         last_ten = data.get('deltas')[-10:]
@@ -84,6 +86,7 @@ class BotKiller(commands.Cog):
             if previous:
                 embed.add_field(name='Previous Events', value=f'User has had {len(previous)} previous event(s)')
             embed.add_field(name='Culprit', value=f'{user.mention} ({user.id})', inline=False)
+            embed.add_field(name='Last Message Link', value=f'[Message Link (click to jump)]({msg.jump_url})')
 
             # log event to db
             await self.bot.mdb['bot_killer_events'].insert_one(
