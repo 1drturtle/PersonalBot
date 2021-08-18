@@ -502,6 +502,10 @@ class Inventory(commands.Cog):
                 continue
 
             member = guild.get_member(member_id)
+            
+            if member is None:
+                continue
+            
             await member.remove_roles(role, reason='Role Expired.')
             log.debug(f'removing @{role.name} from {member}')
             await self.bot.mdb['ga_db'].delete_one({'_id': item.get('_id')})
