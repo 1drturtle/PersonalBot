@@ -445,7 +445,7 @@ class Inventory(commands.Cog):
             {'$set': {'end_time': later}},
             upsert=True
         )
-        embed.description = 'Your special event item has been activated!'
+        embed.description = f'Your special event item has been activated!\n{item.desc}'
         embed.add_field(name='Total Duration', value=f'{item.effects["duration"]} hour(s)')
         embed.add_field(name='End Time', value=f'<t:{later}:R>')
 
