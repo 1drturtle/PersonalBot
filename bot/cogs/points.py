@@ -1,3 +1,4 @@
+import datetime
 import logging
 import re
 import time
@@ -6,7 +7,7 @@ import typing
 import pendulum
 from discord.ext import commands
 
-from utils.constants import EPIC_EVENTS_POINTS, POINTS_EMOJI
+from utils.constants import EPIC_EVENTS_POINTS, POINTS_EMOJI, owner_or_mods
 from utils.converters import MemberOrId
 from utils.embeds import DefaultEmbedMessage, DefaultEmbed
 from utils.embeds import MemberEmbed
@@ -225,6 +226,31 @@ class Points(commands.Cog):
 
         return await ctx.send(embed=embed)
 
+    @points.command(name='give')
+    @owner_or_mods()
+    async def points_admin(self, ctx, who: MemberOrId, amount: int):
+        """Give a user an amount of points.
+        Not affected by multiplier. Mod+ only."""
+        await self.db.update_one(
+            {'_id': who.id},
+            {'$inc': {'points': amount}},
+            upsert=True
+        )
+        embed = DefaultEmbed(ctx, title='Points Added')
+        embed.description = f'{amount} points have been given to {who}'
+        embed.add_field(name='New Total', value=f'{await self.get_points(who)} ({amount:+})')
+
+        await self.bot.mdb['log_events'].insert_one(
+            {
+                'moderator': ctx.author.id,
+                'type': 'point_give',
+                'recipient': who.id,
+                'amount': amount,
+                'date': datetime.datetime.now(tz=datetime.timezone.utc)
+            }
+        )
+
+        await ctx.send(embed=embed)
 
 def setup(bot):
     bot.add_cog(Points(bot))
