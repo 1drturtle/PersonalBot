@@ -38,6 +38,7 @@ class MyBot(commands.Bot):
         self.dev_id = config.DEV_ID
 
         self.whitelist = set()
+        self.channel_blacklist = set()
 
         self.loop.run_until_complete(
             self.startup()
@@ -55,6 +56,9 @@ class MyBot(commands.Bot):
         data = await self.mdb['whitelist'].find().to_list(length=None)
 
         self.whitelist = set([d.get('_id') for d in data])
+
+        self.channel_blacklist = set([d.get('_id') for d
+                                      in await self.mdb['channel_blacklist'].find().to_list(length=None)])
 
     async def close(self):
         self.redis_db.close()
@@ -101,7 +105,11 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
+
     if message.author.bot:
+        return
+
+    if message.channel.id in bot.channel_blacklist:
         return
 
     if not bot.is_ready():

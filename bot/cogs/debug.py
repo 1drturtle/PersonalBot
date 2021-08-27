@@ -1,9 +1,13 @@
-from discord.ext import commands
-import discord
+import logging
+from typing import Optional
 
+import discord
+from discord.ext import commands
+
+from utils.constants import owner_or_mods
 from utils.embeds import DefaultEmbed, ErrorEmbed
 
-from typing import Optional
+log = logging.getLogger(__name__)
 
 
 class Debug(commands.Cog):
@@ -61,6 +65,31 @@ class Debug(commands.Cog):
             title='Channel Permissions Fixed',
             description=f'<#{ch.id}> has been unlocked.'
         ))
+
+    @commands.command('blacklist')
+    @owner_or_mods()
+    async def blacklist_channel(self, ctx, channel: discord.TextChannel):
+        """
+        Causes TurtleBot to not respond in the specified channel.
+        Requires Mod or Higher.
+        """
+
+        embed = DefaultEmbed(ctx)
+        embed.title = 'Channel Blacklisted'
+        embed.description = f'TurtleBot will no longer respond to commands in <#{channel.id}>'
+
+        await self.bot.mdb['channel_blacklist'].update_one(
+            {'_id': channel.id},
+            {'$set': {
+                'user': ctx.author.id,
+            }},
+            upsert=True
+        )
+
+        self.bot.channel_blacklist.add(channel.id)
+
+        await ctx.send(embed=embed)
+        log.info(f'[Debug] Channel #{channel.name} ({channel.id}) blacklisted by {ctx.author} ({ctx.author.id}')
 
 
 def setup(bot):

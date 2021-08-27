@@ -1,11 +1,12 @@
+import logging
 import time as t
 
 import discord
 from discord.ext import commands
+
 from utils.constants import DEV_CHANNEL_NAME, MOD_OR_ADMIN
 from utils.converters import MemberOrId
-from utils.embeds import DefaultEmbedMessage, SuccessEmbed, ErrorEmbed, DefaultEmbed
-import logging
+from utils.embeds import DefaultEmbedMessage, SuccessEmbed
 
 log = logging.getLogger(__name__)
 
