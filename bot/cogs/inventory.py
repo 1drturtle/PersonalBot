@@ -196,6 +196,16 @@ class Inventory(commands.Cog):
     async def inv_shop(self, ctx):
         """Shows a list of all items available to buy."""
         embed = DefaultEmbed(ctx)
+
+        embed.title = 'Command Moved to tb!shop'
+
+        embed.set_thumbnail(url=RPG_ARMY_ICON)
+        return await ctx.send(embed=embed)
+
+    @commands.command(name='shop')
+    async def inv_shop(self, ctx):
+        """Shows a list of all items available to buy."""
+        embed = DefaultEmbed(ctx)
         embed.title = 'Server Item Shop'
         out = []
         for _, item in self.items.items():
@@ -213,13 +223,23 @@ class Inventory(commands.Cog):
         )
 
         embed.add_field(name='How to Buy', value=f'You can buy an item with '
-                                                 f'`{self.bot.config.PREFIX}inv buy <item name>`.')
+                                                 f'`{self.bot.config.PREFIX}buy <item name>`.')
         embed.add_field(name='Shortcuts', value=f"Want to type a shorter name?"
-                                                f" Checkout `{ctx.prefix}inv aliases`")
+                                                f" Checkout `{ctx.prefix}aliases`")
         embed.set_thumbnail(url=RPG_ARMY_ICON)
         return await ctx.send(embed=embed)
 
     @inv.command(name='items', aliases=['list'])
+    async def inv_item_list_old(self, ctx):
+        """Shows a list of all items available to buy."""
+        embed = DefaultEmbed(ctx)
+
+        embed.title = 'Command Moved to tb!items'
+
+        embed.set_thumbnail(url=RPG_ARMY_ICON)
+        return await ctx.send(embed=embed)
+
+    @commands.command(name='items', aliases=['list'])
     async def inv_item_list(self, ctx):
         """Shows a list of all items available to buy."""
         embed = DefaultEmbed(ctx)
@@ -230,13 +250,23 @@ class Inventory(commands.Cog):
 
         embed.description = ('\n'.join(out) or 'No items in database.')
         embed.add_field(name='How to Buy', value=f'You can buy an item with '
-                                                 f'`{self.bot.config.PREFIX}inv buy <item name>`.')
+                                                 f'`{self.bot.config.PREFIX}buy <item name>`.')
         embed.add_field(name='Shortcuts', value=f"Want to type a shorter name?"
-                                                f" Checkout `{ctx.prefix}inv aliases`")
+                                                f" Checkout `{ctx.prefix}aliases`")
         embed.set_thumbnail(url=RPG_ARMY_ICON)
         return await ctx.send(embed=embed)
 
     @inv.command(name='aliases')
+    async def inv_list_aliases_old(self, ctx):
+        """List aliases for server items. Aliases can be used in `buy` and `use`."""
+        embed = DefaultEmbed(ctx)
+
+        embed.title = 'Command Moved to tb!aliases'
+
+        embed.set_thumbnail(url=RPG_ARMY_ICON)
+        return await ctx.send(embed=embed)
+
+    @commands.command(name='aliases')
     async def inv_list_aliases(self, ctx):
         """List aliases for server items. Aliases can be used in `buy` and `use`."""
         embed = DefaultEmbed(ctx)
@@ -250,6 +280,18 @@ class Inventory(commands.Cog):
         return await ctx.send(embed=embed)
 
     @inv.command(name='buy')
+    async def inv_buy_old(self, ctx, amount: typing.Optional[AmountConverter], *, item_name: str):
+        """Buy an item from the shop.
+        Item name must exactly match the item name or one of its aliases.
+        Amount is optional, and defaults to 1."""
+        embed = DefaultEmbed(ctx)
+
+        embed.title = 'Command Moved to tb!buy'
+
+        embed.set_thumbnail(url=RPG_ARMY_ICON)
+        return await ctx.send(embed=embed)
+
+    @commands.command(name='buy')
     async def inv_buy(self, ctx, amount: typing.Optional[AmountConverter], *, item_name: str):
         """Buy an item from the shop.
         Item name must exactly match the item name or one of its aliases.
@@ -266,7 +308,7 @@ class Inventory(commands.Cog):
                 embed=ErrorEmbed(ctx,
                                  title='Item Not Found',
                                  description=f'Could not find an item with that name. '
-                                             f'Check `{self.bot.config.PREFIX}inv items` for a list of all items.')
+                                             f'Check `{self.bot.config.PREFIX}items` for a list of all items.')
             )
 
         if item_inst.effects.get('shop_hide'):
@@ -327,15 +369,26 @@ class Inventory(commands.Cog):
         )
         embed.add_field(
             name='How to Use',
-            value=f'You can check your items with `{ctx.prefix}inv`, and can use the item with `{ctx.prefix}inv use'
+            value=f'You can check your items with `{ctx.prefix}inv`, and can use the item with `{ctx.prefix}use'
                   f' <item_name>`'
         )
         embed.add_field(name='Shortcuts', value=f"Want to type a shorter name?"
-                                                f" Checkout `{ctx.prefix}inv aliases`")
+                                                f" Checkout `{ctx.prefix}aliases`")
 
         return await ctx.send(embed=embed)
 
     @inv.command(name='use')
+    async def inv_use_old(self, ctx, *, item_name: str):
+        """Use an item from your inventory."""
+
+        embed = DefaultEmbed(ctx)
+
+        embed.title = 'Command Moved to tb!use'
+
+        embed.set_thumbnail(url=RPG_ARMY_ICON)
+        return await ctx.send(embed=embed)
+
+    @commands.command(name='use')
     async def inv_use(self, ctx, *, item_name: str):
         """Use an item from your inventory."""
 
@@ -346,7 +399,7 @@ class Inventory(commands.Cog):
                 embed=ErrorEmbed(ctx,
                                  title='Item Not Found',
                                  description=f'Could not find an item with that name. '
-                                             f'Check `{self.bot.config.PREFIX}inv items` for a list of all items.')
+                                             f'Check `{self.bot.config.PREFIX}items` for a list of all items.')
             )
 
         # do we have the item
