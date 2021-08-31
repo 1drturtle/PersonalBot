@@ -68,7 +68,7 @@ class Info(commands.Cog):
         embed.add_field(name='Current Uptime', value=f'```fix\n{self.bot.uptime.in_words()}\n```')
         return await ctx.send(embed=embed)
     
-    @command.command(name='donate')
+    @commands.command(name='donate')
     async def donate(self, ctx):
         """Shows information about supporting the bot!"""
         embed = DefaultEmbed(ctx, title='Want to support the bot?')
