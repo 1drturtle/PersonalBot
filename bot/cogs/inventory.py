@@ -216,7 +216,10 @@ class Inventory(commands.Cog):
         embed.description = ('\n'.join(out) or 'No items in database.')
 
         points = await self.bot.mdb['points'].find_one({'_id': ctx.author.id})
-        points = points.get('points') or 0
+        if not points:
+            points = 0
+        else:
+            points = points.get('points')
 
         embed.add_field(
             name='Current Points', value=f'{POINTS_EMOJI} {points} army points'
