@@ -282,7 +282,7 @@ class Tracker(commands.Cog):
                     return False
                 elif f'**{msg.author.name}** lost but'.lower() in m.content.lower():
                     return False
-                if f'**{msg.author.name}** found a'.lower() not in m.content.lower():
+                if f'**{msg.author.name}** found'.lower() not in m.content.lower():
                     return False
                 if int(cmd_id) in [2, 3]:  # hunt together
                     if 'are hunting together' not in m.content.lower():
