@@ -310,9 +310,9 @@ class Tracker(commands.Cog):
             await self.hunt_hook(msg, cmd)
 
             # item checker
-            bot_msg_content = discord.utils.remove_markdown(bot_msg.content)
-            if f'{msg.author.name} got a'.lower() in bot_msg_content.lower():
-                await self.add_item(msg, time_stamp, bot_msg_content)
+            # bot_msg_content = discord.utils.remove_markdown(bot_msg.content)
+            # if f'{msg.author.name} got a'.lower() in bot_msg_content.lower():
+            #     await self.add_item(msg, time_stamp, bot_msg_content)
 
         elif epic_cmd in EPIC_EVENTS:
             def check(m):
