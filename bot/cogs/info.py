@@ -67,6 +67,14 @@ class Info(commands.Cog):
         embed.title = f'{self.bot.user.name} Uptime'
         embed.add_field(name='Current Uptime', value=f'```fix\n{self.bot.uptime.in_words()}\n```')
         return await ctx.send(embed=embed)
+    
+    @commands.command(name='donate')
+    async def donate(self, ctx):
+        """Shows information about supporting the bot!"""
+        embed = DefaultEmbed(ctx, title='Want to support the bot?')
+        embed.description = 'Thanks for considering supporting TurtleBot. [Here\'s the link.](https://ko-fi.com/drturtle). All proceeds go to hosting TurtleBot.'
+        
+        await ctx.send(embed=embed)
 
 
 def setup(bot):
