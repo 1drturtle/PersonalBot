@@ -267,8 +267,6 @@ class Tracker(commands.Cog):
 
         if cmd in TRACKED_COMMANDS:
 
-            log.info(f'[Hunts] Started {cmd} for {msg.author}')
-
             cmd_id = str(TRACKED_COMMANDS[cmd])
 
             if 'BotKiller' in self.bot.cogs:
@@ -276,6 +274,8 @@ class Tracker(commands.Cog):
 
             if not await self.redis.sismember(f'opted-{self.env}', str(msg.author.id)):
                 return None
+
+            log.info(f'[Hunts] Started {cmd} for {msg.author}')
 
             def check(m):
                 if '**Your Horse**'.lower() in m.content.lower():
