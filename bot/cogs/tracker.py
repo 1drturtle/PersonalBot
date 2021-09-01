@@ -1,11 +1,10 @@
 import logging
+import re
 import typing
 from asyncio import TimeoutError
 from collections import OrderedDict
 from operator import itemgetter
-import re
 
-import discord
 import pendulum
 import pymongo.errors
 import ujson
@@ -268,6 +267,8 @@ class Tracker(commands.Cog):
 
         if cmd in TRACKED_COMMANDS:
 
+            log.info(f'[Hunts] Started {cmd} for {msg.author}')
+
             cmd_id = str(TRACKED_COMMANDS[cmd])
 
             if 'BotKiller' in self.bot.cogs:
@@ -293,6 +294,8 @@ class Tracker(commands.Cog):
                 bot_msg = await self.bot.wait_for('message', check=check, timeout=5)
             except TimeoutError:
                 return None
+
+            log.info(f'[Hunts] Starting Log for {msg.author}')
 
             # update hunt
             await self.add_event(str_id, time_stamp, cmd_id)
